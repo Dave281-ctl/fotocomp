@@ -13,7 +13,11 @@ export default ts.config(
 	...svelte.configs.prettier,
 	{
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
-		rules: { 'no-undef': 'off' }
+		rules: {
+			'no-undef': 'off',
+			// Fotocomp läuft immer im Root-Pfad, resolve() ist daher unnötig.
+			'svelte/no-navigation-without-resolve': 'off'
+		}
 	},
 	{
 		files: ['**/*.svelte', '**/*.svelte.ts'],
