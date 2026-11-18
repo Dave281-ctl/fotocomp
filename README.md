@@ -26,16 +26,21 @@ Ein Thema, jeden Tag ein Foto. Ab 20:00 Uhr bewerten alle die Fotos der anderen,
 Voraussetzung: DSM 7.2 oder neuer mit dem Paket **Container Manager**.
 
 1. **Ordner anlegen** (File Station): `docker/fotocomp/photos` und `docker/fotocomp/db`.
-2. **Projekt erstellen**: Container Manager → Projekt → Erstellen.
+2. **Einstellungen anlegen:** Die Vorlage [`nas.env.example`](nas.env.example) als `docker/fotocomp/.env` speichern und die Werte anpassen:
+   - **Datenbank:** `DB_PASSWORD` als langes Zufallspasswort, nur aus Buchstaben und Ziffern. Zeichen wie `$` oder `#` verfälschen das Passwort. `DB_USERNAME` und `DB_DATABASE_NAME` können so bleiben.
+   - **Adresse:** `ORIGIN` und `APP_PORT` (Port auf dem NAS, Standard 3000).
+   - **Mail:** den SMTP-Zugang deines Mail-Anbieters. Port 587 oder 465, die Verschlüsselung wird passend gewählt.
+3. **Projekt erstellen:** Container Manager → Projekt → Erstellen.
    - Pfad: `/volume1/docker/fotocomp`
-   - Quelle: «docker-compose.yml erstellen» und den Inhalt von [`docker-compose.yml`](docker-compose.yml) einfügen.
-   - Alle Werte mit `ÄNDERN` anpassen: Adresse, Datenbank-Passwort (nur oben bei `x-db-password`) und SMTP-Zugang deines Mail-Anbieters.
-3. **HTTPS einrichten**:
+   - Quelle: «compose.yaml erstellen» und den Inhalt von [`compose.yaml`](compose.yaml) unverändert einfügen. Die Werte kommen alle aus der `.env`.
+4. **HTTPS einrichten:**
    - Systemsteuerung → Sicherheit → Zertifikat: Let's-Encrypt-Zertifikat für deine Domain hinzufügen.
    - Systemsteuerung → Anmeldeportal → Erweitert → Reverse Proxy → Erstellen:
      - Quelle: `HTTPS`, Hostname `fotos.example.com`, Port `443`
-     - Ziel: `HTTP`, `localhost`, Port `3000`
-4. Die Adresse öffnen und **registrieren**. Der erste User wird automatisch Admin.
+     - Ziel: `HTTP`, `localhost`, Port wie `APP_PORT` (z.B. `3000`)
+5. Die Adresse öffnen und **registrieren**. Der erste User wird automatisch Admin.
+
+Nach einer Änderung an der `.env` das Projekt im Container Manager stoppen und wieder starten («Erstellen» übernimmt die neuen Werte).
 
 Im Admin-Bereich kannst du die Registrierung danach auf «nur mit Einladung» stellen.
 
@@ -60,14 +65,17 @@ Der Container-Name kann je nach Projektname abweichen (`docker ps` zeigt ihn an)
 ### Fehlerbehebung
 
 **Die App startet und stoppt sofort, im Log steht `password authentication failed`.**
-Postgres übernimmt `POSTGRES_PASSWORD` nur beim allerersten Start, also wenn der `db`-Ordner leer ist. Wurde das Passwort danach geändert, passt es nicht mehr zur bestehenden Datenbank. Es gibt zwei Lösungen:
+Postgres übernimmt `DB_USERNAME`, `DB_PASSWORD` und `DB_DATABASE_NAME` nur beim allerersten Start, also wenn der `db`-Ordner leer ist. Wurden die Werte in der `.env` danach geändert, passen sie nicht mehr zur bestehenden Datenbank. Es gibt zwei Lösungen:
 
 - **Neu anfangen** (solange noch keine Daten drin sind): Projekt stoppen, den Inhalt von `docker/fotocomp/db` löschen, Projekt wieder starten.
 - **Passwort in der Datenbank anpassen**: Container Manager → Container `…-db-1` → Terminal → Erstellen → `bash`, dann:
   ```bash
-  psql -U fotocomp -c "ALTER USER fotocomp PASSWORD 'dein-passwort-aus-x-db-password';"
+  psql -U fotocomp -d fotocomp -c "ALTER USER fotocomp PASSWORD 'dein-DB_PASSWORD-aus-der-env';"
   ```
-  Danach das Projekt neu starten.
+  `fotocomp` steht hier für deinen `DB_USERNAME` bzw. `DB_DATABASE_NAME`. Danach das Projekt neu starten.
+
+**Login-Mails kommen nicht an.**
+Im Log der App steht der Fehler des Mailservers. Häufig passen Port und Verschlüsselung nicht zusammen: Port 465 nutzt TLS, Port 587 STARTTLS. Ein `SMTP_SECURE` wie in älteren Vorlagen ist nicht mehr nötig und sollte aus der `.env` entfernt werden.
 
 ### Ablage der Fotos
 

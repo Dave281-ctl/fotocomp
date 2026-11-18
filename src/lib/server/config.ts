@@ -26,8 +26,9 @@ export const config = {
 		get port() {
 			return Number(env('SMTP_PORT', '1025'));
 		},
+		/** Port 465 = direkt TLS, andere Ports (587, 25, 1025) = STARTTLS bzw. unverschlüsselt. */
 		get secure() {
-			return env('SMTP_SECURE', 'false') === 'true';
+			return env('SMTP_SECURE', String(this.port === 465)) === 'true';
 		},
 		get user() {
 			return process.env.SMTP_USER;

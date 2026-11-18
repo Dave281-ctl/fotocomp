@@ -7,4 +7,5 @@ data
 .git
 .github
 *.md
-compose*.yml
+compose*.y*ml
+*.env.example
