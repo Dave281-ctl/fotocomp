@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { lastRevealedDay, lastWeeklyVoteDay, themePhase } from '#lib/schedule.ts';
+import { getCurrentRound, getParticipation } from '#lib/server/feedback.ts';
 import { getDayPhotos } from '#lib/server/gallery.ts';
 import { deletePhoto, findPhoto, savePhoto, UploadError } from '#lib/server/photos.ts';
 import { now } from '#lib/server/time.ts';
@@ -26,6 +27,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const weeklyDay = lastWeeklyVoteDay(theme, t);
 	const weeklyResult = weeklyDay ? await getWeeklyResult(theme.id, weeklyDay, user.id, t) : null;
 
+	// Hinweis auf eine laufende oder in den nächsten 24 Stunden beginnende Feedback-Runde
+	const round = await getCurrentRound(theme, t);
+	const feedbackRound =
+		round && round.startsAt.getTime() - t.getTime() < 24 * 3_600_000
+			? {
+					active: round.startsAt <= t,
+					startsAt: round.startsAt,
+					endsAt: round.endsAt,
+					participating: await getParticipation(round, user.id)
+				}
+			: null;
+
 	// Resultat der letzten enthüllten Tagesrunde
 	const resultDay = lastRevealedDay(theme, t);
 	const results = resultDay ? await getDayPhotos(theme.id, resultDay, user.id, t) : [];
@@ -38,6 +51,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		weekPhotos,
 		myPicks,
 		weeklyResult,
+		feedbackRound,
 		resultDay: results.length ? resultDay : null,
 		results,
 		feedbackDefault: user.feedbackDefault

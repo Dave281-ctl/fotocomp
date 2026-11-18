@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { themeSummary } from '#lib/schedule.ts';
+	import { formatDay, formatTime, themeSummary, zurichParts } from '#lib/schedule.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	const theme = $derived(data.theme);
+	const when = (d: Date) => `${formatDay(zurichParts(d).date)}, ${formatTime(d)} Uhr`;
 </script>
 
 <svelte:head><title>{theme.title} · Fotocomp</title></svelte:head>
@@ -42,6 +43,41 @@
 			<p class="muted">Noch niemand.</p>
 		{/if}
 	</section>
+
+	{#if data.phase !== 'ended'}
+		<section class="stack" style="--gap: 10px">
+			<h2>Feedback-Runde</h2>
+			{#if data.round}
+				<p class="muted">
+					{data.roundActive ? 'Läuft bis' : 'Nächste Runde:'}
+					{when(data.roundActive ? data.round.endsAt : data.round.startsAt)}
+					· <a href="/feedback"><u>Zur Runde</u></a>
+				</p>
+			{:else}
+				<p class="muted">Keine Runde geplant.</p>
+			{/if}
+			{#if data.canManage}
+				<div class="row">
+					{#if data.round && data.roundActive}
+						<form method="POST" action="?/endRound" use:enhance>
+							<input type="hidden" name="roundId" value={data.round.id} />
+							<button class="btn small">Runde beenden</button>
+						</form>
+					{:else}
+						<form method="POST" action="?/startRound" class="row" style="--gap: 8px" use:enhance>
+							<select name="hours" aria-label="Dauer" style="width: auto">
+								<option value="24">24 Stunden</option>
+								<option value="48">2 Tage</option>
+								<option value="72">3 Tage</option>
+								<option value="168">1 Woche</option>
+							</select>
+							<button class="btn small">Runde jetzt starten</button>
+						</form>
+					{/if}
+				</div>
+			{/if}
+		</section>
+	{/if}
 
 	{#if data.canManage && data.phase !== 'ended'}
 		<hr class="divider" />

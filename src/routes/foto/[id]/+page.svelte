@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { ChevronLeft, ChevronRight, Download, Maximize } from '@lucide/svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Lightbox from '#lib/components/Lightbox.svelte';
@@ -8,7 +9,7 @@
 	import { formatDay } from '#lib/schedule.ts';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	let photo = $derived(data.photo!);
 	let fullscreen = $state<number | null>(null);
 
@@ -91,6 +92,60 @@
 				</a>
 			{/if}
 		</div>
+
+		<hr class="divider" />
+		<section class="stack feedback" style="--gap: 14px">
+			<h2>Feedback</h2>
+			{#if data.isOwn}
+				<form method="POST" action="?/feedbackWanted" use:enhance>
+					<input type="hidden" name="wanted" value={String(!data.feedbackWanted)} />
+					<label class="check">
+						<input
+							type="checkbox"
+							checked={data.feedbackWanted}
+							onchange={(e) => e.currentTarget.form?.requestSubmit()}
+						/>
+						Feedback zu diesem Foto willkommen
+					</label>
+				</form>
+			{/if}
+
+			{#each data.feedback as item (item.id)}
+				<article class="note">
+					<div class="row" style="justify-content: space-between">
+						<span class="small"><strong>{item.authorName}</strong></span>
+						<form method="POST" action="?/deleteFeedback" use:enhance>
+							<input type="hidden" name="id" value={item.id} />
+							<button class="btn ghost small" aria-label="Feedback löschen">Löschen</button>
+						</form>
+					</div>
+					<p>{item.body}</p>
+				</article>
+			{:else}
+				{#if data.isOwn}
+					<p class="muted small">Noch kein Feedback erhalten.</p>
+				{/if}
+			{/each}
+
+			{#if data.canGiveFeedback}
+				<form method="POST" action="?/feedback" class="stack" style="--gap: 10px" use:enhance>
+					<textarea
+						name="body"
+						rows="3"
+						placeholder="Was gefällt dir? Was könnte man ausprobieren?"
+						required></textarea>
+					{#if form?.feedbackError}<p class="error">{form.feedbackError}</p>{/if}
+					<div class="row" style="justify-content: space-between">
+						<span class="muted small">
+							Nur {photo.userName ?? 'der Fotograf'} sieht dein Feedback.
+						</span>
+						<button class="btn small primary">Senden</button>
+					</div>
+				</form>
+			{:else if !data.isOwn}
+				<p class="muted small">Zu diesem Foto ist kein Feedback gewünscht.</p>
+			{/if}
+		</section>
 	</aside>
 </div>
 
@@ -134,6 +189,14 @@
 
 	.pager a:only-child[aria-label='Nächstes'] {
 		margin-left: auto;
+	}
+
+	.note {
+		background: var(--surface);
+		border-radius: var(--radius-sm);
+		padding: 12px 14px;
+		font-size: 15px;
+		white-space: pre-line;
 	}
 
 	.name {

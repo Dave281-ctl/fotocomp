@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	addDays,
+	autoFeedbackRound,
 	at,
 	gameDay,
 	isRevealed,
@@ -121,5 +122,21 @@ describe('lastWeeklyVoteDay', () => {
 		expect(lastWeeklyVoteDay(theme, z('2026-11-23', 5))).toBe('2026-11-22');
 		expect(lastWeeklyVoteDay(theme, z('2026-11-29', 4))).toBe('2026-11-22');
 		expect(lastWeeklyVoteDay(theme, z('2026-11-30', 5))).toBe('2026-11-29');
+	});
+});
+
+describe('autoFeedbackRound', () => {
+	const fb = { feedbackDay: 1, feedbackTime: '19:00', feedbackHours: 24 };
+	it('liefert die laufende Runde', () => {
+		const r = autoFeedbackRound(fb, z('2026-11-24', 10))!; // Dienstag
+		expect(r.startsAt).toEqual(z('2026-11-23', 19));
+		expect(r.endsAt).toEqual(z('2026-11-24', 19));
+	});
+	it('liefert sonst die nächste Runde', () => {
+		const r = autoFeedbackRound(fb, z('2026-11-24', 19))!;
+		expect(r.startsAt).toEqual(z('2026-11-30', 19));
+	});
+	it('ohne Rhythmus keine Runde', () => {
+		expect(autoFeedbackRound({ ...fb, feedbackDay: null }, z('2026-11-24', 10))).toBeNull();
 	});
 });

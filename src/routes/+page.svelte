@@ -74,6 +74,21 @@
 			{#if data.theme.description}<p class="lead">{data.theme.description}</p>{/if}
 		</header>
 
+		{#if data.feedbackRound && data.feedbackRound.participating !== false}
+			{@const round = data.feedbackRound}
+			<a class="notice row feedback-hint" href="/feedback">
+				<span>
+					{#if round.active}
+						Feedback-Runde läuft bis {formatTime(round.endsAt)} Uhr.
+					{:else}
+						Feedback-Runde ab {formatTime(round.startsAt)} Uhr.
+					{/if}
+					{round.participating === null ? 'Machst du mit?' : ''}
+				</span>
+				<span class="muted small">Ansehen →</span>
+			</a>
+		{/if}
+
 		{#if phase.kind === 'upcoming'}
 			<p class="notice">Das Thema startet am {formatDay(data.theme.startDate)}.</p>
 		{:else if phase.kind === 'upload'}
@@ -233,6 +248,10 @@
 		max-width: 640px;
 	}
 
+	.feedback-hint {
+		justify-content: space-between;
+	}
+
 	.savebar {
 		position: sticky;
 		bottom: 16px;
@@ -245,6 +264,10 @@
 	}
 
 	@media (max-width: 720px) {
+		.feedback-hint {
+			justify-content: space-between;
+		}
+
 		.savebar {
 			bottom: calc(var(--nav-h) + 12px);
 		}

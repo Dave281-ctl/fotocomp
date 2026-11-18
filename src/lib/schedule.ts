@@ -193,3 +193,30 @@ export function lastWeeklyVoteDay(theme: ThemeSchedule, now: Date): Day | null {
 	}
 	return null;
 }
+
+interface FeedbackSchedule {
+	feedbackDay: number | null;
+	feedbackTime: string | null;
+	feedbackHours: number;
+}
+
+/**
+ * Die laufende oder nächste automatische Feedback-Runde eines Themas
+ * (z.B. jeden Montag 19:00 für 24 Stunden).
+ */
+export function autoFeedbackRound(
+	theme: FeedbackSchedule,
+	now: Date
+): { startsAt: Date; endsAt: Date } | null {
+	if (!theme.feedbackDay || !theme.feedbackTime) return null;
+	const [h, m] = theme.feedbackTime.split(':').map(Number);
+	const today = zurichParts(now).date;
+	for (let i = -7; i <= 7; i++) {
+		const day = addDays(today, i);
+		if (isoWeekday(day) !== theme.feedbackDay) continue;
+		const startsAt = at(day, h, m);
+		const endsAt = new Date(startsAt.getTime() + theme.feedbackHours * 3_600_000);
+		if (endsAt > now) return { startsAt, endsAt };
+	}
+	return null;
+}
