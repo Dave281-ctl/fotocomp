@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from './config.ts';
+import { UserError } from './errors.ts';
 
 let transport: Transporter | undefined;
 
@@ -59,13 +60,42 @@ ${footer ? `<p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#8a84
 
 export async function sendMail(to: string, content: MailContent) {
 	const { html, text } = render(content);
-	await getTransport().sendMail({
-		from: config.smtp.from,
-		to,
-		subject: content.subject,
-		html,
-		text
-	});
+	try {
+		await getTransport().sendMail({
+			from: config.smtp.from,
+			to,
+			subject: content.subject,
+			html,
+			text
+		});
+	} catch (e) {
+		console.error(`Mail an ${to} fehlgeschlagen:`, e);
+		throw new UserError(
+			'Die Mail konnte nicht verschickt werden. Bitte später nochmals versuchen oder den Admin informieren.',
+			503
+		);
+	}
+}
+
+/** Kurze Fehlerbeschreibung, z.B. «ECONNREFUSED» oder «EAUTH: Invalid login». */
+function describe(e: unknown) {
+	if (!(e instanceof Error)) return String(e);
+	const code = (e as { code?: string }).code;
+	return [code, e.message].filter(Boolean).join(': ');
+}
+
+/** Prüft beim Start die Verbindung zum Mailserver und schreibt das Ergebnis ins Log. */
+export async function checkMailServer() {
+	const { host, port, secure } = config.smtp;
+	try {
+		await getTransport().verify();
+		console.log(`Mailserver ${host}:${port} erreichbar.`);
+	} catch (e) {
+		console.error(
+			`Mailserver ${host}:${port} (${secure ? 'TLS' : 'STARTTLS'}) nicht nutzbar – Login-Mails gehen nicht raus:`,
+			describe(e)
+		);
+	}
 }
 
 // --------------------------------------------------------------- Mailvorlagen

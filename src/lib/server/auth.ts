@@ -5,6 +5,7 @@ import { config } from './config.ts';
 import { db } from './db.ts';
 import { sendLoginMail } from './mail.ts';
 import { invitations, loginTokens, sessions, users, type User } from './schema.ts';
+import { UserError } from './errors.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
 export const LOGIN_TOKEN_TTL = 15 * 60 * 1000;
@@ -50,8 +51,6 @@ interface TokenInput {
 /** Höchstens so viele Login-Mails pro Adresse und Stunde (Schutz vor Missbrauch). */
 const MAX_TOKENS_PER_HOUR = 5;
 
-export class TooManyRequestsError extends Error {}
-
 /** Erzeugt einen einmaligen Login-Link-Token und einen 6-stelligen Code. */
 export async function createLoginToken(input: TokenInput) {
 	const [{ recent }] = await db
@@ -64,7 +63,7 @@ export async function createLoginToken(input: TokenInput) {
 			)
 		);
 	if (recent >= MAX_TOKENS_PER_HOUR) {
-		throw new TooManyRequestsError('Zu viele Anfragen. Bitte versuche es später nochmals.');
+		throw new UserError('Zu viele Anfragen. Bitte versuche es später nochmals.', 429);
 	}
 
 	const token = randomToken();

@@ -1,7 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import {
-	TooManyRequestsError,
 	isValidEmail,
 	normalizeEmail,
 	redeemCode,
@@ -9,6 +8,7 @@ import {
 	sendLoginLink,
 	signIn
 } from '#lib/server/auth.ts';
+import { UserError } from '#lib/server/errors.ts';
 import { db } from '#lib/server/db.ts';
 import { users } from '#lib/server/schema.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -30,7 +30,7 @@ export const actions: Actions = {
 			try {
 				await sendLoginLink({ email, userId: user.id });
 			} catch (e) {
-				if (e instanceof TooManyRequestsError) return fail(429, { email, error: e.message });
+				if (e instanceof UserError) return fail(e.status, { email, error: e.message });
 				throw e;
 			}
 		}

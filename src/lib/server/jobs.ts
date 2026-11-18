@@ -100,7 +100,7 @@ async function notify(
 			paragraphs: [`Hallo ${r.name}`, text],
 			button: { label: button, url: `${config.origin}${path}` },
 			footer: 'Erinnerungen kannst du in deinem Profil abschalten.'
-		}).catch((e) => console.error(`Mail an ${r.email} fehlgeschlagen:`, e));
+		}).catch(() => {}); // Fehler wird in sendMail protokolliert
 	}
 }
 

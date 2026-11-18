@@ -10,6 +10,7 @@ import {
 } from '#lib/server/auth.ts';
 import { config } from '#lib/server/config.ts';
 import { db } from '#lib/server/db.ts';
+import { UserError } from '#lib/server/errors.ts';
 import { sendInviteMail } from '#lib/server/mail.ts';
 import { invitations, users } from '#lib/server/schema.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -53,7 +54,12 @@ export const actions: Actions = {
 		if (existing) return fail(400, { error: 'Diese Person ist schon dabei.' });
 
 		const url = await createInvitation(user.id, email);
-		await sendInviteMail(email, user.name, url);
+		try {
+			await sendInviteMail(email, user.name, url);
+		} catch (e) {
+			if (e instanceof UserError) return fail(e.status, { error: e.message });
+			throw e;
+		}
 		return { sent: email };
 	},
 

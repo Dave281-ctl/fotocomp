@@ -4,11 +4,13 @@ import { building } from '$app/env';
 import { SESSION_COOKIE, setSessionCookie, validateSession } from '#lib/server/auth.ts';
 import { closeDb } from '#lib/server/db.ts';
 import { startJobs, stopJobs } from '#lib/server/jobs.ts';
+import { checkMailServer } from '#lib/server/mail.ts';
 
 /** Startet die Erinnerungsmails im Hintergrund. */
 export const init: ServerInit = () => {
 	if (building) return;
 	startJobs();
+	void checkMailServer();
 	// Sauber herunterfahren (z.B. bei einem Update durch Watchtower)
 	process.once('sveltekit:shutdown', async () => {
 		stopJobs();

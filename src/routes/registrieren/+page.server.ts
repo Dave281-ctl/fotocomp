@@ -1,12 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { count, eq } from 'drizzle-orm';
-import {
-	TooManyRequestsError,
-	findInvitation,
-	isValidEmail,
-	normalizeEmail,
-	sendLoginLink
-} from '#lib/server/auth.ts';
+import { findInvitation, isValidEmail, normalizeEmail, sendLoginLink } from '#lib/server/auth.ts';
+import { UserError } from '#lib/server/errors.ts';
 import { db } from '#lib/server/db.ts';
 import { users } from '#lib/server/schema.ts';
 import { getSettings } from '#lib/server/settings.ts';
@@ -58,7 +53,7 @@ export const actions: Actions = {
 				await sendLoginLink({ email, userId: existing.id });
 			}
 		} catch (e) {
-			if (e instanceof TooManyRequestsError) return fail(429, { name, email, error: e.message });
+			if (e instanceof UserError) return fail(e.status, { name, email, error: e.message });
 			throw e;
 		}
 		return { sent: true, email };
