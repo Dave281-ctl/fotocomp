@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Expand } from '@lucide/svelte';
 	import { photoSrc, photoSrcset } from '../media.ts';
 	import type { FeedPhoto } from '../types.ts';
 	import Avatar from './Avatar.svelte';
@@ -7,15 +8,22 @@
 	let {
 		photos,
 		voting = false,
+		picks,
 		onopen,
-		onrate
+		onrate,
+		onpick
 	}: {
 		photos: FeedPhoto[];
 		/** Bewertungsmodus: Namen verborgen, Sterne unter jedem fremden Foto. */
 		voting?: boolean;
+		/** Wochenbewertung: gewählte Foto-IDs in der Reihenfolge der Plätze. */
+		picks?: number[];
 		onopen: (index: number) => void;
 		onrate?: (photo: FeedPhoto, stars: number) => void;
+		onpick?: (photo: FeedPhoto) => void;
 	} = $props();
+
+	const picking = $derived(picks !== undefined);
 </script>
 
 <!--
@@ -25,18 +33,30 @@
 <div class="feed">
 	{#each photos as photo, i (photo.id)}
 		{@const ratio = photo.width / photo.height}
-		<figure style="--ratio: {ratio}">
-			<button class="image" onclick={() => onopen(i)} aria-label="Foto gross anzeigen">
+		{@const place = picks ? picks.indexOf(photo.id) + 1 : 0}
+		<figure style="--ratio: {ratio}" class:picked={place > 0}>
+			<button
+				class="image"
+				class:pickable={picking && !photo.isOwn}
+				onclick={() => (picking ? !photo.isOwn && onpick?.(photo) : onopen(i))}
+				aria-label={picking ? 'Foto wählen' : 'Foto gross anzeigen'}
+			>
 				<img
 					src={photoSrc(photo.id)}
 					srcset={photoSrcset(photo.id)}
 					sizes="(max-width: 720px) 100vw, 50vw"
 					alt=""
-					loading="lazy"
+					loading={i < 4 ? 'eager' : 'lazy'}
 					style="aspect-ratio: {ratio}"
 				/>
-				{#if photo.rank === 1 && !voting}<span class="winner">Tagessieg</span>{/if}
+				{#if place}<span class="place">{place}</span>{/if}
+				{#if photo.rank === 1 && !voting && !picking}<span class="winner">Tagessieg</span>{/if}
 			</button>
+			{#if picking}
+				<button class="expand" onclick={() => onopen(i)} aria-label="Gross anzeigen">
+					<Expand size={16} />
+				</button>
+			{/if}
 			<figcaption>
 				{#if voting && !photo.isOwn}
 					<Stars value={photo.myStars} onrate={(s) => onrate?.(photo, s)} />
@@ -70,6 +90,7 @@
 	}
 
 	figure {
+		position: relative;
 		margin: 0;
 		flex-grow: var(--ratio);
 		flex-basis: calc(var(--ratio) * 300px);
@@ -96,6 +117,43 @@
 
 	.image:hover img {
 		transform: scale(1.015);
+	}
+
+	.pickable {
+		cursor: pointer;
+	}
+
+	.picked .image {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
+	}
+
+	.place {
+		position: absolute;
+		top: 12px;
+		left: 12px;
+		display: grid;
+		place-items: center;
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		font-weight: 600;
+		background: var(--accent);
+		color: var(--accent-text);
+	}
+
+	.expand {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		display: grid;
+		place-items: center;
+		padding: 8px;
+		border: 0;
+		border-radius: 50%;
+		background: rgb(0 0 0 / 0.45);
+		color: #fff;
+		cursor: zoom-in;
 	}
 
 	.winner {

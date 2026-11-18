@@ -15,6 +15,20 @@
 	let votingPhotos = $derived(data.theme ? data.votingPhotos : []);
 	let votingIndex = $state<number | null>(null);
 	let resultIndex = $state<number | null>(null);
+	let weekIndex = $state<number | null>(null);
+	let winnerIndex = $state<number | null>(null);
+
+	// Wochenbewertung: Antippen vergibt den nächsten freien Platz, nochmals antippen entfernt
+	let picks = $derived(data.theme ? data.myPicks : []);
+	let picksDirty = $state(false);
+	function togglePick(photo: FeedPhoto) {
+		picks = picks.includes(photo.id)
+			? picks.filter((id) => id !== photo.id)
+			: picks.length < 3
+				? [...picks, photo.id]
+				: picks;
+		picksDirty = true;
+	}
 	let voteError = $state('');
 	const toRate = $derived(votingPhotos.filter((p) => !p.isOwn));
 	const rated = $derived(toRate.filter((p) => p.myStars !== null).length);
@@ -128,7 +142,70 @@
 				{/if}
 			</section>
 		{:else if phase.kind === 'weekly'}
-			<p class="notice">Heute wird das Wochenfoto gewählt.</p>
+			<section class="stack" style="--gap: 24px">
+				<div class="stack" style="--gap: 4px">
+					<h2>Wähle das Wochenfoto</h2>
+					<p class="muted small">
+						Tippe deine drei Favoriten der Woche an: der erste erhält 3 Punkte, der zweite 2, der
+						dritte 1. Enthüllung um {formatTime(phase.endsAt)} Uhr.
+					</p>
+				</div>
+				{#if data.weekPhotos.length}
+					<PhotoFeed
+						photos={data.weekPhotos}
+						{picks}
+						onpick={togglePick}
+						onopen={(i) => (weekIndex = i)}
+					/>
+					<Lightbox photos={data.weekPhotos} bind:index={weekIndex} />
+					<form
+						method="POST"
+						action="?/weekly"
+						class="savebar row"
+						use:enhance={() =>
+							async ({ update }) => {
+								await update({ reset: false });
+								picksDirty = false;
+							}}
+					>
+						<input type="hidden" name="picks" value={picks.join(',')} />
+						<span class="muted small">
+							{picks.length} von 3 gewählt
+							{#if !picksDirty && form?.weeklySaved}· gespeichert{/if}
+						</span>
+						{#if form?.weeklyError}<span class="error">{form.weeklyError}</span>{/if}
+						<button class="btn accent" disabled={!picksDirty}>Wahl speichern</button>
+					</form>
+				{:else}
+					<p class="muted">Diese Woche gibt es keine Fotos.</p>
+				{/if}
+			</section>
+		{/if}
+
+		{#if data.weeklyResult}
+			{@const result = data.weeklyResult}
+			<section class="stack" style="--gap: 24px">
+				<hr class="divider" />
+				<div class="stack" style="--gap: 4px">
+					<p class="eyebrow">Wochenfoto</p>
+					<h2>Woche bis {formatDay(result.voteDay)}</h2>
+				</div>
+				{#if result.winners.length}
+					<PhotoFeed photos={result.winners} onopen={(i) => (winnerIndex = i)} />
+					<Lightbox photos={result.winners} bind:index={winnerIndex} />
+				{:else}
+					<p class="muted">Diese Woche wurden keine Stimmen abgegeben.</p>
+				{/if}
+				<ol class="ranking">
+					{#each result.photographers as p (p.userId)}
+						<li>
+							<span class="rank">{p.rank}.</span>
+							<span>{p.name}</span>
+							<span class="muted small">{p.total.toFixed(1)} ★ aus {p.days} Tagen</span>
+						</li>
+					{/each}
+				</ol>
+			</section>
 		{/if}
 
 		{#if data.resultDay && data.results.length}
@@ -154,6 +231,42 @@
 	.lead {
 		font-size: 18px;
 		max-width: 640px;
+	}
+
+	.savebar {
+		position: sticky;
+		bottom: 16px;
+		justify-content: space-between;
+		padding: 12px 12px 12px 20px;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--surface) 90%, transparent);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+	}
+
+	@media (max-width: 720px) {
+		.savebar {
+			bottom: calc(var(--nav-h) + 12px);
+		}
+	}
+
+	.ranking {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-width: 480px;
+	}
+
+	.ranking li {
+		display: grid;
+		grid-template-columns: 32px 1fr auto;
+		align-items: baseline;
+		padding: 10px 0;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.rank {
+		color: var(--muted);
 	}
 
 	figure {

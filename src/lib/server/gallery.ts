@@ -27,7 +27,11 @@ const shuffleKey = (photoId: number, viewerId: number) =>
 	(photoId * 7919 + viewerId * 104729) % 9973;
 
 /** Ergänzt Fotos um Bewertungen, Ränge und blendet Namen bis zur Enthüllung aus. */
-async function decorate(rows: PhotoRow[], viewerId: number, now: Date): Promise<FeedPhoto[]> {
+export async function decorate(
+	rows: PhotoRow[],
+	viewerId: number,
+	now: Date
+): Promise<FeedPhoto[]> {
 	if (rows.length === 0) return [];
 	const voteRows = await db
 		.select({ photoId: votes.photoId, voterId: votes.voterId, stars: votes.stars })

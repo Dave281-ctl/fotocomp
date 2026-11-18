@@ -1,9 +1,10 @@
 import { fail } from '@sveltejs/kit';
-import { lastRevealedDay, themePhase } from '#lib/schedule.ts';
+import { lastRevealedDay, lastWeeklyVoteDay, themePhase } from '#lib/schedule.ts';
 import { getDayPhotos } from '#lib/server/gallery.ts';
 import { deletePhoto, findPhoto, savePhoto, UploadError } from '#lib/server/photos.ts';
 import { now } from '#lib/server/time.ts';
 import { getMembership } from '#lib/server/themes.ts';
+import { getMyPicks, getWeekPhotos, getWeeklyResult, savePicks } from '#lib/server/weekly.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -18,6 +19,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const votingPhotos =
 		phase.kind === 'voting' ? await getDayPhotos(theme.id, phase.day, user.id, t) : [];
 
+	const weekPhotos =
+		phase.kind === 'weekly' ? await getWeekPhotos(theme.id, phase.day, user.id, t) : [];
+	const myPicks = phase.kind === 'weekly' ? await getMyPicks(theme.id, phase.day, user.id) : [];
+
+	const weeklyDay = lastWeeklyVoteDay(theme, t);
+	const weeklyResult = weeklyDay ? await getWeeklyResult(theme.id, weeklyDay, user.id, t) : null;
+
 	// Resultat der letzten enthüllten Tagesrunde
 	const resultDay = lastRevealedDay(theme, t);
 	const results = resultDay ? await getDayPhotos(theme.id, resultDay, user.id, t) : [];
@@ -27,6 +35,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		phase,
 		myPhoto,
 		votingPhotos,
+		weekPhotos,
+		myPicks,
+		weeklyResult,
 		resultDay: results.length ? resultDay : null,
 		results,
 		feedbackDefault: user.feedbackDefault
@@ -56,6 +67,19 @@ export const actions: Actions = {
 			if (e instanceof UploadError) return fail(400, { uploadError: e.message });
 			throw e;
 		}
+	},
+
+	weekly: async ({ request, locals }) => {
+		const user = locals.user!;
+		const membership = await getMembership(user.id);
+		if (!membership) return fail(400, { weeklyError: 'Du machst bei keinem Thema mit.' });
+		const picks = String((await request.formData()).get('picks') ?? '')
+			.split(',')
+			.filter(Boolean)
+			.map(Number);
+		const error = await savePicks(membership.theme, user.id, picks, now());
+		if (error) return fail(400, { weeklyError: error });
+		return { weeklySaved: true };
 	},
 
 	deletePhoto: async ({ locals }) => {

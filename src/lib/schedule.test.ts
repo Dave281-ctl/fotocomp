@@ -6,6 +6,7 @@ import {
 	isRevealed,
 	isoWeekday,
 	lastRevealedDay,
+	lastWeeklyVoteDay,
 	themePhase,
 	type ThemeSchedule
 } from './schedule.ts';
@@ -111,5 +112,14 @@ describe('Enthüllung', () => {
 		expect(lastRevealedDay(theme, z('2026-11-18', 12))).toBe('2026-11-17');
 		expect(lastRevealedDay(theme, z('2026-11-23', 12))).toBe('2026-11-21');
 		expect(lastRevealedDay(theme, z('2026-11-16', 12))).toBeNull();
+	});
+});
+
+describe('lastWeeklyVoteDay', () => {
+	it('findet den letzten enthüllten Wochentag', () => {
+		expect(lastWeeklyVoteDay(theme, z('2026-11-22', 21))).toBeNull();
+		expect(lastWeeklyVoteDay(theme, z('2026-11-23', 5))).toBe('2026-11-22');
+		expect(lastWeeklyVoteDay(theme, z('2026-11-29', 4))).toBe('2026-11-22');
+		expect(lastWeeklyVoteDay(theme, z('2026-11-30', 5))).toBe('2026-11-29');
 	});
 });

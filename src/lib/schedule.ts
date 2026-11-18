@@ -182,3 +182,14 @@ export function themeSummary(t: ThemeSummaryInput): string[] {
 export function isPhotoPublic(day: Day, now: Date): boolean {
 	return now >= at(day, VOTING_START_HOUR);
 }
+
+/** Der letzte Wochenbewertungstag vor dem laufenden Tag (innerhalb einer Woche), falls vorhanden. */
+export function lastWeeklyVoteDay(theme: ThemeSchedule, now: Date): Day | null {
+	if (!theme.weeklyVoteDay) return null;
+	for (let i = 1; i <= 7; i++) {
+		const day = addDays(gameDay(now), -i);
+		if (day < theme.startDate) return null;
+		if (isWeeklyVoteDay(theme, day)) return isRevealed(day, now) ? day : null;
+	}
+	return null;
+}
