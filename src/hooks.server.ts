@@ -1,6 +1,13 @@
 import { redirect } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit/hooks';
+import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
+import { building } from '$app/env';
 import { SESSION_COOKIE, setSessionCookie, validateSession } from '#lib/server/auth.ts';
+import { startJobs } from '#lib/server/jobs.ts';
+
+/** Startet die Erinnerungsmails im Hintergrund. */
+export const init: ServerInit = () => {
+	if (!building) startJobs();
+};
 
 /** Seiten, die ohne Anmeldung erreichbar sind. */
 const PUBLIC_PATHS = ['/login', '/registrieren', '/auth/'];
