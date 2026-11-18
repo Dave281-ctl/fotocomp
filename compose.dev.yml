@@ -1,0 +1,22 @@
+# Nur für die Entwicklung: Datenbank und Test-Mailserver.
+# Start: podman-compose -f compose.dev.yml up -d
+services:
+  db:
+    image: docker.io/library/postgres:17-alpine
+    environment:
+      POSTGRES_USER: fotocomp
+      POSTGRES_PASSWORD: fotocomp
+      POSTGRES_DB: fotocomp
+    ports:
+      - '5432:5432'
+    volumes:
+      - devdb:/var/lib/postgresql/data
+
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Weboberfläche: http://localhost:8025
+
+volumes:
+  devdb:
