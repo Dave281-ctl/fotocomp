@@ -1,0 +1,49 @@
+# Fotocomp auf dem Synology NAS (Container Manager → Projekt) oder jedem Docker-Host.
+# Werte mit «ÄNDERN» anpassen. Ordner vorher anlegen:
+#   /volume1/docker/fotocomp/photos  und  /volume1/docker/fotocomp/db
+services:
+  app:
+    image: ghcr.io/dave281-ctl/fotocomp:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    environment:
+      ORIGIN: https://fotos.example.com # ÄNDERN: öffentliche Adresse
+      DATABASE_URL: postgres://fotocomp:ÄNDERN-db-passwort@db:5432/fotocomp
+      SMTP_HOST: smtp.example.com # ÄNDERN
+      SMTP_PORT: '465'
+      SMTP_SECURE: 'true'
+      SMTP_USER: fotocomp@example.com # ÄNDERN
+      SMTP_PASS: ÄNDERN
+      MAIL_FROM: 'Fotocomp <fotocomp@example.com>' # ÄNDERN
+    volumes:
+      - /volume1/docker/fotocomp/photos:/data
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fotocomp
+      POSTGRES_PASSWORD: ÄNDERN-db-passwort
+      POSTGRES_DB: fotocomp
+    volumes:
+      - /volume1/docker/fotocomp/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fotocomp']
+      interval: 10s
+      retries: 10
+
+  # Aktualisiert die App automatisch, sobald auf GitHub ein neues Release erscheint.
+  watchtower:
+    image: nickfedor/watchtower:latest
+    restart: unless-stopped
+    command: --label-enable --cleanup --interval 1800
+    environment:
+      TZ: Europe/Zurich
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

@@ -40,7 +40,12 @@ export function startJobs() {
 	if (timer) return;
 	const run = () => runNotifications(now()).catch((e) => console.error('Benachrichtigungen:', e));
 	timer = setInterval(run, INTERVAL);
-	setTimeout(run, 10_000);
+	setTimeout(run, 10_000).unref();
+}
+
+export function stopJobs() {
+	clearInterval(timer);
+	timer = undefined;
 }
 
 /** Merkt sich einen Schlüssel; liefert false, wenn er schon existierte. */
