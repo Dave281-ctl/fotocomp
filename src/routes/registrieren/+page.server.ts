@@ -1,15 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { count, eq } from 'drizzle-orm';
 import {
-	createLoginToken,
+	TooManyRequestsError,
 	findInvitation,
 	isValidEmail,
-	normalizeEmail
+	normalizeEmail,
+	sendLoginLink
 } from '#lib/server/auth.ts';
-import { config } from '#lib/server/config.ts';
 import { db } from '#lib/server/db.ts';
 import { users } from '#lib/server/schema.ts';
-import { sendLoginMail } from '#lib/server/mail.ts';
 import { getSettings } from '#lib/server/settings.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -51,19 +50,16 @@ export const actions: Actions = {
 		if (!allowed) return fail(403, { name, email, error: 'Registrierung nur mit Einladung.' });
 
 		const [existing] = await db.select().from(users).where(eq(users.email, email));
-		if (existing) {
-			// Bereits registriert: einfach einen Login-Link schicken.
-			if (!existing.disabled) {
-				const { token, code } = await createLoginToken({ email, userId: existing.id });
-				await sendLoginMail(email, `${config.origin}/auth/verify?token=${token}`, code, false);
+		try {
+			if (!existing) {
+				await sendLoginLink({ email, name, invitationId: invite?.invitation.id }, true);
+			} else if (!existing.disabled) {
+				// Bereits registriert: einfach einen Login-Link schicken.
+				await sendLoginLink({ email, userId: existing.id });
 			}
-		} else {
-			const { token, code } = await createLoginToken({
-				email,
-				name,
-				invitationId: invite?.invitation.id
-			});
-			await sendLoginMail(email, `${config.origin}/auth/verify?token=${token}`, code, true);
+		} catch (e) {
+			if (e instanceof TooManyRequestsError) return fail(429, { name, email, error: e.message });
+			throw e;
 		}
 		return { sent: true, email };
 	}

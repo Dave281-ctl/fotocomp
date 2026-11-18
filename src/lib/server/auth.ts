@@ -1,7 +1,9 @@
 import type { Cookies } from '@sveltejs/kit';
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { and, count, desc, eq, gt, isNull } from 'drizzle-orm';
+import { config } from './config.ts';
 import { db } from './db.ts';
+import { sendLoginMail } from './mail.ts';
 import { invitations, loginTokens, sessions, users, type User } from './schema.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -45,8 +47,26 @@ interface TokenInput {
 	invitationId?: number;
 }
 
+/** Höchstens so viele Login-Mails pro Adresse und Stunde (Schutz vor Missbrauch). */
+const MAX_TOKENS_PER_HOUR = 5;
+
+export class TooManyRequestsError extends Error {}
+
 /** Erzeugt einen einmaligen Login-Link-Token und einen 6-stelligen Code. */
 export async function createLoginToken(input: TokenInput) {
+	const [{ recent }] = await db
+		.select({ recent: count() })
+		.from(loginTokens)
+		.where(
+			and(
+				eq(loginTokens.email, input.email),
+				gt(loginTokens.createdAt, new Date(Date.now() - 60 * 60 * 1000))
+			)
+		);
+	if (recent >= MAX_TOKENS_PER_HOUR) {
+		throw new TooManyRequestsError('Zu viele Anfragen. Bitte versuche es später nochmals.');
+	}
+
 	const token = randomToken();
 	const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
 	await db.insert(loginTokens).values({
@@ -59,6 +79,12 @@ export async function createLoginToken(input: TokenInput) {
 		expiresAt: new Date(Date.now() + LOGIN_TOKEN_TTL)
 	});
 	return { token, code };
+}
+
+/** Erzeugt einen Login-Token und schickt Link und Code per Mail. */
+export async function sendLoginLink(input: TokenInput, isNew = false) {
+	const { token, code } = await createLoginToken(input);
+	await sendLoginMail(input.email, `${config.origin}/auth/verify?token=${token}`, code, isNew);
 }
 
 type LoginToken = typeof loginTokens.$inferSelect;

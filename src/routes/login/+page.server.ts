@@ -1,17 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import {
-	createLoginToken,
+	TooManyRequestsError,
 	isValidEmail,
 	normalizeEmail,
 	redeemCode,
 	safeRedirect,
+	sendLoginLink,
 	signIn
 } from '#lib/server/auth.ts';
-import { config } from '#lib/server/config.ts';
 import { db } from '#lib/server/db.ts';
 import { users } from '#lib/server/schema.ts';
-import { sendLoginMail } from '#lib/server/mail.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url }) => {
@@ -28,8 +27,12 @@ export const actions: Actions = {
 		const [user] = await db.select().from(users).where(eq(users.email, email));
 		// Aus Datenschutzgründen verraten wir nicht, ob die Adresse registriert ist.
 		if (user && !user.disabled) {
-			const { token, code } = await createLoginToken({ email, userId: user.id });
-			await sendLoginMail(email, `${config.origin}/auth/verify?token=${token}`, code, false);
+			try {
+				await sendLoginLink({ email, userId: user.id });
+			} catch (e) {
+				if (e instanceof TooManyRequestsError) return fail(429, { email, error: e.message });
+				throw e;
+			}
 		}
 		return { sent: true, email };
 	},
