@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import Uploader from '#lib/components/Uploader.svelte';
+	import { photoSrc, photoSrcset } from '#lib/media.ts';
 	import { formatDay, formatTime } from '#lib/schedule.ts';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
+	let replacing = $state(false);
 </script>
 
 <svelte:head><title>Heute · Fotocomp</title></svelte:head>
@@ -30,11 +34,49 @@
 		</header>
 
 		{#if phase.kind === 'upcoming'}
-			<p class="notice">
-				Das Thema startet am {formatDay(data.theme.startDate)}.
-			</p>
+			<p class="notice">Das Thema startet am {formatDay(data.theme.startDate)}.</p>
 		{:else if phase.kind === 'upload'}
-			<p class="notice">Lade dein Foto des Tages bis {formatTime(phase.endsAt)} Uhr hoch.</p>
+			<section class="stack">
+				{#if data.myPhoto && !replacing}
+					<figure class="mine">
+						<img
+							src={photoSrc(data.myPhoto.id)}
+							srcset={photoSrcset(data.myPhoto.id)}
+							sizes="(max-width: 1080px) 100vw, 1080px"
+							alt="Dein Foto des Tages"
+						/>
+					</figure>
+					<div class="row" style="justify-content: space-between">
+						<p class="muted">
+							Dein Foto ist bereit. Ab {formatTime(phase.endsAt)} Uhr sehen es die anderen.
+						</p>
+						<div class="row" style="--gap: 4px">
+							<button class="btn small" onclick={() => (replacing = true)}>Ersetzen</button>
+							<form
+								method="POST"
+								action="?/deletePhoto"
+								use:enhance={({ cancel }) => {
+									if (!confirm('Foto wirklich löschen?')) cancel();
+								}}
+							>
+								<button class="btn danger small">Löschen</button>
+							</form>
+						</div>
+					</div>
+				{:else}
+					<p class="muted">Lade dein Foto des Tages bis {formatTime(phase.endsAt)} Uhr hoch.</p>
+					<Uploader
+						feedbackDefault={data.feedbackDefault}
+						replacing={!!data.myPhoto}
+						error={form?.uploadError}
+					/>
+					{#if replacing}
+						<div>
+							<button class="btn ghost small" onclick={() => (replacing = false)}>Abbrechen</button>
+						</div>
+					{/if}
+				{/if}
+			</section>
 		{:else if phase.kind === 'voting'}
 			<p class="notice">Bewertung läuft bis {formatTime(phase.endsAt)} Uhr.</p>
 		{:else if phase.kind === 'weekly'}
@@ -52,5 +94,18 @@
 	.lead {
 		font-size: 18px;
 		max-width: 640px;
+	}
+
+	figure {
+		margin: 0;
+		background: var(--photo-bg);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	figure img {
+		width: 100%;
+		max-height: 75vh;
+		object-fit: contain;
 	}
 </style>

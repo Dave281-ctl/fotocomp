@@ -177,3 +177,8 @@ export function themeSummary(t: ThemeSummaryInput): string[] {
 	}
 	return lines;
 }
+
+/** Fotos eines Tages sind für andere ab 20:00 sichtbar (Beginn der Bewertung). */
+export function isPhotoPublic(day: Day, now: Date): boolean {
+	return now >= at(day, VOTING_START_HOUR);
+}
