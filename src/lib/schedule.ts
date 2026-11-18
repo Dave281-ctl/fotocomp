@@ -153,6 +153,13 @@ export function formatTime(date: Date): string {
 	return timeFormat.format(date);
 }
 
+const weekdayTimeFormat = formatter({ weekday: 'long', hour: '2-digit', minute: '2-digit' });
+
+/** «Dienstag, 19:00» */
+export function formatWeekdayTime(date: Date): string {
+	return weekdayTimeFormat.format(date);
+}
+
 interface ThemeSummaryInput {
 	startDate: Day;
 	endDate: Day | null;

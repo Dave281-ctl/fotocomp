@@ -84,12 +84,18 @@
 
 	/* Mobil: Navigation als Leiste unten */
 	@media (max-width: 720px) {
+		/* backdrop-filter würde die fixierte Leiste unten an den Header binden */
 		header {
 			justify-content: space-between;
+			position: static;
+			backdrop-filter: none;
+			-webkit-backdrop-filter: none;
+			background: var(--bg);
 		}
 
 		nav {
 			position: fixed;
+			z-index: 30;
 			left: 0;
 			right: 0;
 			bottom: 0;

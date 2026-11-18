@@ -113,7 +113,7 @@ export async function getWeeklyResult(
 	const byId = new Map(week.map((p) => [p.id, p]));
 	const winners = ranking
 		.filter((r) => r.rank === 1 && r.points > 0)
-		.map((r) => ({ ...byId.get(r.photoId)!, rank: null, points: r.points }));
+		.map((r) => ({ ...byId.get(r.photoId)!, rank: null, average: null, points: r.points }));
 
 	const names = new Map(week.map((p) => [p.userId, p.userName]));
 	const photographers = rankPhotographers(

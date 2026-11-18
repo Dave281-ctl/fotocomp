@@ -50,7 +50,9 @@
 					style="aspect-ratio: {ratio}"
 				/>
 				{#if place}<span class="place">{place}</span>{/if}
-				{#if photo.rank === 1 && !voting && !picking}<span class="winner">Tagessieg</span>{/if}
+				{#if photo.rank === 1 && photo.votes && !voting && !picking}<span class="winner">
+						Tagessieg
+					</span>{/if}
 			</button>
 			{#if picking}
 				<button class="expand" onclick={() => onopen(i)} aria-label="Gross anzeigen">

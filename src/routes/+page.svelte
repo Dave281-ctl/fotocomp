@@ -4,7 +4,7 @@
 	import PhotoFeed from '#lib/components/PhotoFeed.svelte';
 	import Uploader from '#lib/components/Uploader.svelte';
 	import { photoSrc, photoSrcset } from '#lib/media.ts';
-	import { formatDay, formatTime } from '#lib/schedule.ts';
+	import { formatDay, formatTime, formatWeekdayTime } from '#lib/schedule.ts';
 	import type { FeedPhoto } from '#lib/types.ts';
 	import type { PageProps } from './$types';
 
@@ -79,9 +79,9 @@
 			<a class="notice row feedback-hint" href="/feedback">
 				<span>
 					{#if round.active}
-						Feedback-Runde läuft bis {formatTime(round.endsAt)} Uhr.
+						Feedback-Runde läuft bis {formatWeekdayTime(round.endsAt)} Uhr.
 					{:else}
-						Feedback-Runde ab {formatTime(round.startsAt)} Uhr.
+						Feedback-Runde ab {formatWeekdayTime(round.startsAt)} Uhr.
 					{/if}
 					{round.participating === null ? 'Machst du mit?' : ''}
 				</span>
