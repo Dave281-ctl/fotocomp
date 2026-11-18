@@ -13,9 +13,6 @@ function env(name: string, fallback?: string): string {
 }
 
 export const config = {
-	get databaseUrl() {
-		return env('DATABASE_URL');
-	},
 	get origin() {
 		return env('ORIGIN', 'http://localhost:5173');
 	},

@@ -29,7 +29,7 @@ Voraussetzung: DSM 7.2 oder neuer mit dem Paket **Container Manager**.
 2. **Projekt erstellen**: Container Manager → Projekt → Erstellen.
    - Pfad: `/volume1/docker/fotocomp`
    - Quelle: «docker-compose.yml erstellen» und den Inhalt von [`docker-compose.yml`](docker-compose.yml) einfügen.
-   - Alle Werte mit `ÄNDERN` anpassen: Adresse, Datenbank-Passwort (an beiden Stellen gleich) und SMTP-Zugang deines Mail-Anbieters.
+   - Alle Werte mit `ÄNDERN` anpassen: Adresse, Datenbank-Passwort (nur oben bei `x-db-password`) und SMTP-Zugang deines Mail-Anbieters.
 3. **HTTPS einrichten**:
    - Systemsteuerung → Sicherheit → Zertifikat: Let's-Encrypt-Zertifikat für deine Domain hinzufügen.
    - Systemsteuerung → Anmeldeportal → Erweitert → Reverse Proxy → Erstellen:
@@ -56,6 +56,18 @@ docker exec fotocomp-db-1 pg_dump -U fotocomp fotocomp > /volume1/docker/fotocom
 ```
 
 Der Container-Name kann je nach Projektname abweichen (`docker ps` zeigt ihn an).
+
+### Fehlerbehebung
+
+**Die App startet und stoppt sofort, im Log steht `password authentication failed`.**
+Postgres übernimmt `POSTGRES_PASSWORD` nur beim allerersten Start, also wenn der `db`-Ordner leer ist. Wurde das Passwort danach geändert, passt es nicht mehr zur bestehenden Datenbank. Es gibt zwei Lösungen:
+
+- **Neu anfangen** (solange noch keine Daten drin sind): Projekt stoppen, den Inhalt von `docker/fotocomp/db` löschen, Projekt wieder starten.
+- **Passwort in der Datenbank anpassen**: Container Manager → Container `…-db-1` → Terminal → Erstellen → `bash`, dann:
+  ```bash
+  psql -U fotocomp -c "ALTER USER fotocomp PASSWORD 'dein-passwort-aus-x-db-password';"
+  ```
+  Danach das Projekt neu starten.
 
 ### Ablage der Fotos
 

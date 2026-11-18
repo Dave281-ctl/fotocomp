@@ -1,6 +1,11 @@
 # Fotocomp auf dem Synology NAS (Container Manager → Projekt) oder jedem Docker-Host.
 # Werte mit «ÄNDERN» anpassen. Ordner vorher anlegen:
 #   /volume1/docker/fotocomp/photos  und  /volume1/docker/fotocomp/db
+
+# Datenbank-Passwort: nur hier ändern, es wird unten für App und Datenbank verwendet.
+# Wichtig: Es gilt nur beim allerersten Start (leerer db-Ordner).
+x-db-password: &db-password ÄNDERN-langes-passwort
+
 services:
   app:
     image: ghcr.io/dave281-ctl/fotocomp:latest
@@ -12,7 +17,7 @@ services:
       - '3000:3000'
     environment:
       ORIGIN: https://fotos.example.com # ÄNDERN: öffentliche Adresse
-      DATABASE_URL: postgres://fotocomp:ÄNDERN-db-passwort@db:5432/fotocomp
+      DB_PASSWORD: *db-password
       SMTP_HOST: smtp.example.com # ÄNDERN
       SMTP_PORT: '465'
       SMTP_SECURE: 'true'
@@ -29,7 +34,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: fotocomp
-      POSTGRES_PASSWORD: ÄNDERN-db-passwort
+      POSTGRES_PASSWORD: *db-password
       POSTGRES_DB: fotocomp
     volumes:
       - /volume1/docker/fotocomp/db:/var/lib/postgresql/data
