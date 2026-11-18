@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
-import { themePhase } from '#lib/schedule.ts';
+import { lastRevealedDay, themePhase } from '#lib/schedule.ts';
+import { getDayPhotos } from '#lib/server/gallery.ts';
 import { deletePhoto, findPhoto, savePhoto, UploadError } from '#lib/server/photos.ts';
 import { now } from '#lib/server/time.ts';
 import { getMembership } from '#lib/server/themes.ts';
@@ -11,12 +12,25 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!membership) return { theme: null };
 
 	const { theme } = membership;
-	const phase = themePhase(theme, now());
-	const myPhoto =
-		phase.kind === 'upload' || phase.kind === 'voting'
-			? await findPhoto(user.id, theme.id, phase.day)
-			: null;
-	return { theme, phase, myPhoto, feedbackDefault: user.feedbackDefault };
+	const t = now();
+	const phase = themePhase(theme, t);
+	const myPhoto = phase.kind === 'upload' ? await findPhoto(user.id, theme.id, phase.day) : null;
+	const votingPhotos =
+		phase.kind === 'voting' ? await getDayPhotos(theme.id, phase.day, user.id, t) : [];
+
+	// Resultat der letzten enthüllten Tagesrunde
+	const resultDay = lastRevealedDay(theme, t);
+	const results = resultDay ? await getDayPhotos(theme.id, resultDay, user.id, t) : [];
+
+	return {
+		theme,
+		phase,
+		myPhoto,
+		votingPhotos,
+		resultDay: results.length ? resultDay : null,
+		results,
+		feedbackDefault: user.feedbackDefault
+	};
 };
 
 /** Gibt Thema und Tag zurück, falls jetzt hochgeladen werden darf. */

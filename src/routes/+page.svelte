@@ -1,12 +1,39 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import Lightbox from '#lib/components/Lightbox.svelte';
+	import PhotoFeed from '#lib/components/PhotoFeed.svelte';
 	import Uploader from '#lib/components/Uploader.svelte';
 	import { photoSrc, photoSrcset } from '#lib/media.ts';
 	import { formatDay, formatTime } from '#lib/schedule.ts';
+	import type { FeedPhoto } from '#lib/types.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	let replacing = $state(false);
+
+	// Bewertung: lokal sofort anzeigen, im Hintergrund speichern
+	let votingPhotos = $derived(data.theme ? data.votingPhotos : []);
+	let votingIndex = $state<number | null>(null);
+	let resultIndex = $state<number | null>(null);
+	let voteError = $state('');
+	const toRate = $derived(votingPhotos.filter((p) => !p.isOwn));
+	const rated = $derived(toRate.filter((p) => p.myStars !== null).length);
+
+	async function rate(photo: FeedPhoto, stars: number) {
+		const previous = photo.myStars;
+		const set = (value: number | null) =>
+			(votingPhotos = votingPhotos.map((p) => (p.id === photo.id ? { ...p, myStars: value } : p)));
+		set(stars);
+		const res = await fetch('/api/vote', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ photoId: photo.id, stars })
+		});
+		if (!res.ok) {
+			set(previous);
+			voteError = 'Die Bewertung konnte nicht gespeichert werden. Ist die Bewertungszeit vorbei?';
+		}
+	}
 </script>
 
 <svelte:head><title>Heute · Fotocomp</title></svelte:head>
@@ -78,9 +105,42 @@
 				{/if}
 			</section>
 		{:else if phase.kind === 'voting'}
-			<p class="notice">Bewertung läuft bis {formatTime(phase.endsAt)} Uhr.</p>
+			<section class="stack" style="--gap: 24px">
+				<div class="row" style="justify-content: space-between">
+					<div class="stack" style="--gap: 4px">
+						<h2>Bewerte die Fotos von heute</h2>
+						<p class="muted small">
+							Anonym bis {formatTime(phase.endsAt)} Uhr · danach wird enthüllt, wer was fotografiert hat.
+						</p>
+					</div>
+					{#if toRate.length}
+						<span class="badge" class:accent={rated === toRate.length}>
+							{rated} / {toRate.length} bewertet
+						</span>
+					{/if}
+				</div>
+				{#if voteError}<p class="error">{voteError}</p>{/if}
+				{#if votingPhotos.length}
+					<PhotoFeed photos={votingPhotos} voting onopen={(i) => (votingIndex = i)} onrate={rate} />
+					<Lightbox photos={votingPhotos} bind:index={votingIndex} voting onrate={rate} />
+				{:else}
+					<p class="muted">Heute wurden keine Fotos hochgeladen.</p>
+				{/if}
+			</section>
 		{:else if phase.kind === 'weekly'}
 			<p class="notice">Heute wird das Wochenfoto gewählt.</p>
+		{/if}
+
+		{#if data.resultDay && data.results.length}
+			<section class="stack" style="--gap: 24px">
+				<hr class="divider" />
+				<div class="stack" style="--gap: 4px">
+					<p class="eyebrow">Resultat</p>
+					<h2>{formatDay(data.resultDay)}</h2>
+				</div>
+				<PhotoFeed photos={data.results} onopen={(i) => (resultIndex = i)} />
+				<Lightbox photos={data.results} bind:index={resultIndex} />
+			</section>
 		{/if}
 	{/if}
 </div>

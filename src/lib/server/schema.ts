@@ -13,6 +13,9 @@ import {
 	unique,
 	uniqueIndex
 } from 'drizzle-orm/pg-core';
+import type { PhotoExif } from '../types.ts';
+
+export type { PhotoExif };
 
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
@@ -119,21 +122,6 @@ export const themeMembers = pgTable(
 			.where(sql`${t.leftAt} is null`)
 	]
 );
-
-export interface PhotoExif {
-	make?: string;
-	model?: string;
-	lens?: string;
-	focalLength?: number;
-	focalLength35?: number;
-	aperture?: number;
-	exposureTime?: number;
-	iso?: number;
-	takenAt?: string;
-	latitude?: number;
-	longitude?: number;
-	altitude?: number;
-}
 
 export const photos = pgTable(
 	'photos',
