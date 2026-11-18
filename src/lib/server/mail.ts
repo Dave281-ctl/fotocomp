@@ -83,3 +83,15 @@ export function sendLoginMail(to: string, url: string, code: string, isNew: bool
 		footer: 'Falls du das nicht angefordert hast, kannst du diese Mail einfach ignorieren.'
 	});
 }
+
+export function sendInviteMail(to: string, inviterName: string, url: string) {
+	return sendMail(to, {
+		subject: `${inviterName} lädt dich zu Fotocomp ein`,
+		paragraphs: [
+			`${inviterName} möchte mit dir fotografieren.`,
+			'Fotocomp ist ein kleiner, privater Foto-Wettbewerb unter Freunden: Es gibt ein Thema, jeden Tag lädst du ein Foto dazu hoch. Am Abend bewerten alle die Fotos der anderen, am Morgen gibt es das Resultat – und wer möchte, bekommt freundschaftliches Feedback.'
+		],
+		button: { label: 'Einladung annehmen', url },
+		footer: 'Die Einladung ist 14 Tage gültig.'
+	});
+}
