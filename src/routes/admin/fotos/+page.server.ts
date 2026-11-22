@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, type SQL } from 'drizzle-orm';
 import { db } from '#lib/server/db.ts';
-import { deletePhoto } from '#lib/server/photos.ts';
+import { deletePhoto, fileType } from '#lib/server/photos.ts';
 import { photos, themes, users } from '#lib/server/schema.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -22,6 +22,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			id: photos.id,
 			day: photos.day,
 			sizeBytes: photos.sizeBytes,
+			originalPath: photos.originalPath,
 			userName: users.name,
 			themeTitle: themes.title
 		})
@@ -34,7 +35,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		.offset((pageNo - 1) * PAGE_SIZE);
 
 	return {
-		photos: list.slice(0, PAGE_SIZE),
+		photos: list
+			.slice(0, PAGE_SIZE)
+			.map(({ originalPath, ...p }) => ({ ...p, type: fileType(originalPath) })),
 		hasMore: list.length > PAGE_SIZE,
 		page: pageNo,
 		filter: { userId, themeId, day },

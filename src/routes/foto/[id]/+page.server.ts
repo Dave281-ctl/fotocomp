@@ -7,6 +7,7 @@ import { canSeePhoto, canVote, getDayPhotos } from '#lib/server/gallery.ts';
 import { photos, themes, users } from '#lib/server/schema.ts';
 import { now } from '#lib/server/time.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { fileType } from '#lib/server/photos.ts';
 
 async function loadPhoto(idParam: string) {
 	const id = Number(idParam);
@@ -46,6 +47,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		width: photo.width,
 		height: photo.height,
 		exif,
+		original: { type: fileType(photo.originalPath), sizeBytes: photo.sizeBytes },
 		theme: { id: theme.id, title: theme.title },
 		day: photo.day,
 		revealed: isRevealed(photo.day, t),

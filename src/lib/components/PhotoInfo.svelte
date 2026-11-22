@@ -2,7 +2,18 @@
 	import { MapPin } from '@lucide/svelte';
 	import type { PhotoExif } from '../types.ts';
 
-	let { exif, width, height }: { exif: PhotoExif; width: number; height: number } = $props();
+	let {
+		exif,
+		width,
+		height,
+		original
+	}: {
+		exif: PhotoExif;
+		width: number;
+		height: number;
+		/** Format und Grösse der Originaldatei, z.B. DNG · 29,2 MB */
+		original?: { type: string; sizeBytes: number };
+	} = $props();
 
 	const camera = $derived.by(() => {
 		const { make, model } = exif;
@@ -37,7 +48,8 @@
 			['Belichtung', exif.exposureTime && exposure(exif.exposureTime)],
 			['ISO', exif.iso],
 			['Aufgenommen', taken],
-			['Auflösung', `${width} × ${height} px · ${((width * height) / 1e6).toFixed(1)} MP`]
+			['Auflösung', `${width} × ${height} px · ${((width * height) / 1e6).toFixed(1)} MP`],
+			['Original', original && `${original.type} · ${(original.sizeBytes / 1e6).toFixed(1)} MB`]
 		].filter((row): row is [string, string | number] => !!row[1])
 	);
 

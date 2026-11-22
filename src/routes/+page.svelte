@@ -135,6 +135,7 @@
 					<Uploader
 						themeId={data.theme.id}
 						feedbackDefault={data.feedbackDefault}
+						maxMb={data.maxUploadMb}
 						replacing={!!data.myPhoto}
 						error={form?.uploadError}
 					/>

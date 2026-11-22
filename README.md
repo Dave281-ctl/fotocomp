@@ -20,7 +20,7 @@ Hat bis 20:00 Uhr im Thema niemand ein Foto hochgeladen, gibt es nichts zu bewer
 - **Galerie**: Standardmässig die Tagessieger und Wochenfotos aller Themen, mit Badge. Auf Wunsch alle Fotos, gefiltert nach Thema und/oder Person.
 - **Erinnerungen per Mail**: Pro Zeitpunkt höchstens eine Mail, auch bei mehreren Themen, und nie mehr als eine pro 30 Minuten. Oben steht eine persönliche Zeile, etwa neues Feedback, ein eigener Tagessieg oder eine Serie. Die Texte stehen in [`src/lib/mail-texts.ts`](src/lib/mail-texts.ts). Abschalten lassen sich die Erinnerungen im Profil.
 - **Login ohne Passwort**: Login-Link oder 6-stelliger Code per Mail. Auf demselben Gerät bleibt man angemeldet (30 Tage gleitend).
-- **Fotos**: Die Originale werden unverändert nach Benutzer abgelegt. Für Handy, Monitor und Vollbild gibt es WebP-Thumbnails. Die Detailansicht zeigt Kamera, Objektiv, Belichtung und GPS.
+- **Fotos**: JPEG, **HEIC** (iPhone), PNG, WebP, AVIF, TIFF und **RAW** (DNG inkl. iPhone ProRAW, CR2/CR3, NEF, ARW, RAF, ORF, RW2, PEF …) bis 200 MB. Bei RAW-Dateien wird die eingebettete Kamera-Vorschau verwendet, so sieht das Foto aus wie auf der Kamera; fehlt sie, wird das RAW mit LibRaw entwickelt. Die Originale werden unverändert nach Benutzer abgelegt. Für Handy, Monitor und Vollbild gibt es WebP-Thumbnails. Die Detailansicht zeigt Kamera, Objektiv, Belichtung, GPS und das Format des Originals.
 - **Admin**: Der erste registrierte User ist Admin. Admins verwalten Benutzer, Fotos, Themen und Einstellungen und können weitere Admins ernennen. Die Admin-Übersicht zeigt die installierte Version.
 - **Einladen** per Mail oder Link (Signal, WhatsApp, Matrix …) unter Profil → Freunde einladen.
 - **Dunkelmodus** als Standard, auf Wunsch hell.
@@ -79,6 +79,9 @@ Postgres übernimmt `DB_USERNAME`, `DB_PASSWORD` und `DB_DATABASE_NAME` nur beim
   ```
   `fotocomp` steht hier für deinen `DB_USERNAME` bzw. `DB_DATABASE_NAME`. Danach das Projekt neu starten.
 
+**Grosse Fotos (z.B. RAW) lassen sich nicht hochladen, die App meldet «zu gross für den Server».**
+Dann begrenzt der Reverse Proxy die Grösse von Uploads. Die App selbst nimmt bis 200 MB an. Die Grenze der App lässt sich mit `MAX_UPLOAD_MB` in der `.env` ändern; für mehr als 200 MB zusätzlich `BODY_SIZE_LIMIT` (z.B. `310M`) setzen.
+
 **Login-Mails kommen nicht an.**
 Die App zeigt dann «Die Mail konnte nicht verschickt werden». Gleich nach dem Start schreibt sie ins Log, ob der Mailserver erreichbar ist (`Mailserver … erreichbar` oder `… nicht nutzbar` mit Grund, z.B. `EAUTH` für falsche Zugangsdaten oder `ETIMEDOUT` für einen falschen Host oder Port). Häufig passen Port und Verschlüsselung nicht zusammen: Port 465 nutzt TLS, Port 587 STARTTLS. Ein `SMTP_SECURE` wie in älteren Vorlagen ist nicht mehr nötig und sollte aus der `.env` entfernt werden.
 
@@ -86,13 +89,13 @@ Die App zeigt dann «Die Mail konnte nicht verschickt werden». Gleich nach dem 
 
 ```
 photos/
-├─ originals/<benutzer>/<YYYY-MM-DD>_<thema>_<id>.jpg   unverändert, mit allen Metadaten
+├─ originals/<benutzer>/<YYYY-MM-DD>_<thema>_<id>.<jpg|heic|dng|…>   unverändert, mit allen Metadaten
 └─ thumbs/<id>/{480,1200,2400}.webp                      ohne Metadaten
 ```
 
 ## Entwicklung
 
-Voraussetzungen: Node.js 22+ und Podman oder Docker.
+Voraussetzungen: Node.js 22+, Perl (für ExifTool, unter Linux meist vorhanden) und Podman oder Docker. Für RAW-Dateien ohne eingebettete Vorschau optional LibRaw (`dcraw_emu`).
 
 ```bash
 npm install
@@ -127,7 +130,7 @@ src/
 
 ### Technik
 
-Alles ist Open Source: [SvelteKit](https://svelte.dev) (MIT), [Drizzle ORM](https://orm.drizzle.team) (Apache-2.0), [PostgreSQL](https://www.postgresql.org), [sharp](https://sharp.pixelplumbing.com) (Apache-2.0), [exifr](https://github.com/MikeKovarik/exifr) (MIT), [Nodemailer](https://nodemailer.com) (MIT-0), [date-fns](https://date-fns.org) (MIT), [Lucide](https://lucide.dev) (ISC), [Inter](https://rsms.me/inter/) (OFL), Karten von [OpenStreetMap](https://www.openstreetmap.org/copyright) und [Watchtower](https://github.com/nicholas-fedor/watchtower) (Apache-2.0).
+Alles ist Open Source: [SvelteKit](https://svelte.dev) (MIT), [Drizzle ORM](https://orm.drizzle.team) (Apache-2.0), [PostgreSQL](https://www.postgresql.org), [sharp](https://sharp.pixelplumbing.com) (Apache-2.0), [ExifTool](https://exiftool.org) über [exiftool-vendored](https://github.com/photostructure/exiftool-vendored.js) (MIT), [libheif](https://github.com/strukturag/libheif) über [heic-decode](https://github.com/catdad-experiments/heic-decode) (LGPL-3.0 / ISC), [LibRaw](https://www.libraw.org) (LGPL-2.1), [Nodemailer](https://nodemailer.com) (MIT-0), [date-fns](https://date-fns.org) (MIT), [Lucide](https://lucide.dev) (ISC), [Inter](https://rsms.me/inter/) (OFL), Karten von [OpenStreetMap](https://www.openstreetmap.org/copyright) und [Watchtower](https://github.com/nicholas-fedor/watchtower) (Apache-2.0).
 
 ## Lizenz
 

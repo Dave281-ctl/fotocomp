@@ -1,55 +1,121 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { ImagePlus } from '@lucide/svelte';
+	import { applyAction, deserialize } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import { FileImage, ImagePlus } from '@lucide/svelte';
 
 	let {
 		themeId,
 		feedbackDefault,
+		maxMb,
 		replacing = false,
 		error
-	}: { themeId: number; feedbackDefault: boolean; replacing?: boolean; error?: string } = $props();
+	}: {
+		themeId: number;
+		feedbackDefault: boolean;
+		maxMb: number;
+		replacing?: boolean;
+		error?: string;
+	} = $props();
 
+	/** Alles, was der Server lesen kann (siehe convert.ts). */
+	const ACCEPT = [
+		'image/*',
+		'.heic',
+		'.heif',
+		'.avif',
+		'.tif',
+		'.tiff',
+		...'dng cr2 cr3 crw nef nrw arw srf sr2 raf orf ori rw2 rwl pef srw x3f 3fr iiq erf'
+			.split(' ')
+			.map((e) => `.${e}`)
+	].join(',');
+
+	let form: HTMLFormElement;
 	let input: HTMLInputElement;
+	let file = $state<File | null>(null);
 	let preview = $state<string | null>(null);
+	/** Der Browser kann manche Formate (HEIC in Chrome, RAW überall) nicht anzeigen. */
+	let previewFailed = $state(false);
 	let busy = $state(false);
-	let dragging = $state(false);
+	let progress = $state(0);
+	let localError = $state('');
 
-	function show(file: File | undefined) {
+	const sizeMb = $derived(file ? file.size / 1024 / 1024 : 0);
+	const tooBig = $derived(sizeMb > maxMb);
+
+	function show(f: File | undefined | null) {
 		if (preview) URL.revokeObjectURL(preview);
-		preview = file ? URL.createObjectURL(file) : null;
+		file = f ?? null;
+		preview = f ? URL.createObjectURL(f) : null;
+		previewFailed = false;
+		localError = '';
 	}
 
 	function onDrop(e: DragEvent) {
 		e.preventDefault();
 		dragging = false;
-		const file = e.dataTransfer?.files[0];
-		if (!file) return;
+		const f = e.dataTransfer?.files[0];
+		if (!f) return;
 		const list = new DataTransfer();
-		list.items.add(file);
+		list.items.add(f);
 		input.files = list.files;
-		show(file);
+		show(f);
+	}
+	let dragging = $state(false);
+
+	/** Hochladen mit Fortschrittsanzeige (fetch kann keinen Upload-Fortschritt melden). */
+	async function submit(e: SubmitEvent) {
+		e.preventDefault();
+		if (busy || tooBig) return;
+		busy = true;
+		progress = 0;
+		localError = '';
+		const xhr = new XMLHttpRequest();
+		xhr.open('POST', form.action);
+		xhr.setRequestHeader('accept', 'application/json');
+		xhr.setRequestHeader('x-sveltekit-action', 'true');
+		xhr.upload.onprogress = (ev) => {
+			if (ev.lengthComputable) progress = ev.loaded / ev.total;
+		};
+		try {
+			await new Promise<void>((resolve, reject) => {
+				xhr.onload = () => resolve();
+				xhr.onerror = () => reject(new Error('network'));
+				xhr.send(new FormData(form));
+			});
+			if (xhr.status === 413) {
+				localError = 'Die Datei ist zu gross für den Server.';
+				return;
+			}
+			const result = deserialize(xhr.responseText);
+			if (result.type === 'success') {
+				form.reset();
+				show(null);
+				await invalidateAll();
+			}
+			await applyAction(result);
+		} catch {
+			localError =
+				'Das Hochladen hat nicht geklappt. Bitte Verbindung prüfen und nochmals versuchen.';
+		} finally {
+			busy = false;
+		}
 	}
 </script>
 
 <form
+	bind:this={form}
 	method="POST"
 	action="?/upload"
 	enctype="multipart/form-data"
 	class="stack"
-	use:enhance={() => {
-		busy = true;
-		return async ({ update }) => {
-			await update();
-			busy = false;
-			show(undefined);
-		};
-	}}
+	onsubmit={submit}
 >
 	<input type="hidden" name="theme" value={themeId} />
 	<label
 		class="drop"
 		class:dragging
-		class:has-preview={preview}
+		class:has-preview={preview && !previewFailed}
 		ondragover={(e) => {
 			e.preventDefault();
 			dragging = true;
@@ -57,36 +123,59 @@
 		ondragleave={() => (dragging = false)}
 		ondrop={onDrop}
 	>
-		{#if preview}
-			<img src={preview} alt="Vorschau" />
+		{#if file && preview && !previewFailed}
+			<img src={preview} alt="Vorschau" onerror={() => (previewFailed = true)} />
+		{:else if file}
+			<FileImage size={36} strokeWidth={1.2} />
+			<span class="title">{file.name}</span>
+			<span class="muted small">
+				{sizeMb.toFixed(1)} MB · Die Vorschau erscheint nach dem Hochladen.
+			</span>
 		{:else}
 			<ImagePlus size={36} strokeWidth={1.2} />
 			<span class="title">{replacing ? 'Anderes Foto wählen' : 'Foto des Tages wählen'}</span>
-			<span class="muted small">Antippen oder hierher ziehen · JPEG, PNG, WebP bis 50 MB</span>
+			<span class="muted small">
+				Antippen oder hierher ziehen · JPEG, HEIC, PNG, WebP oder RAW (z.B. DNG) bis {maxMb} MB
+			</span>
 		{/if}
 		<input
 			bind:this={input}
 			class="visually-hidden"
 			type="file"
 			name="photo"
-			accept="image/jpeg,image/png,image/webp"
+			accept={ACCEPT}
 			required
 			onchange={() => show(input.files?.[0])}
 		/>
 	</label>
 
-	{#if preview}
+	{#if busy}
+		<div class="progress" role="progressbar" aria-valuenow={Math.round(progress * 100)}>
+			<span style="width: {progress * 100}%"></span>
+		</div>
+	{/if}
+
+	{#if file}
 		<div class="row" style="justify-content: space-between">
 			<label class="check">
 				<input type="checkbox" name="feedback" checked={feedbackDefault} />
 				Feedback willkommen
 			</label>
-			<button class="btn accent" disabled={busy}>
-				{busy ? 'Wird hochgeladen …' : replacing ? 'Foto ersetzen' : 'Hochladen'}
+			<button class="btn accent" disabled={busy || tooBig}>
+				{#if busy}
+					{progress < 1
+						? `Wird hochgeladen … ${Math.round(progress * 100)} %`
+						: 'Wird verarbeitet …'}
+				{:else}
+					{replacing ? 'Foto ersetzen' : 'Hochladen'}
+				{/if}
 			</button>
 		</div>
 	{/if}
-	{#if error}<p class="error">{error}</p>{/if}
+	{#if tooBig}
+		<p class="error">Das Foto ist grösser als {maxMb} MB.</p>
+	{/if}
+	{#if localError || error}<p class="error">{localError || error}</p>{/if}
 </form>
 
 <style>
@@ -130,5 +219,20 @@
 	.title {
 		font-size: 18px;
 		font-weight: 500;
+		overflow-wrap: anywhere;
+	}
+
+	.progress {
+		height: 4px;
+		border-radius: 999px;
+		background: var(--surface-2);
+		overflow: hidden;
+	}
+
+	.progress span {
+		display: block;
+		height: 100%;
+		background: var(--accent);
+		transition: width 0.2s;
 	}
 </style>

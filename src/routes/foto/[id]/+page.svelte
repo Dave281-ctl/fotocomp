@@ -80,7 +80,7 @@
 		{/if}
 
 		<hr class="divider" />
-		<PhotoInfo exif={data.exif} width={data.width} height={data.height} />
+		<PhotoInfo exif={data.exif} width={data.width} height={data.height} original={data.original} />
 
 		<div class="row" style="--gap: 8px">
 			<button class="btn small" onclick={() => (fullscreen = 0)}>

@@ -3,6 +3,7 @@ import { lastRevealedDay, lastWeeklyVoteDay } from '#lib/schedule.ts';
 import { getCurrentRound, getParticipation } from '#lib/server/feedback.ts';
 import { getDayPhotos } from '#lib/server/gallery.ts';
 import { deletePhoto, findPhoto, savePhoto, UploadError } from '#lib/server/photos.ts';
+import { config } from '#lib/server/config.ts';
 import { selectTheme } from '#lib/server/current-theme.ts';
 import { now } from '#lib/server/time.ts';
 import { getMembership, getPhase, type Membership } from '#lib/server/themes.ts';
@@ -81,7 +82,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		feedbackRound,
 		resultDay: results.length ? resultDay : null,
 		results,
-		feedbackDefault: user.feedbackDefault
+		feedbackDefault: user.feedbackDefault,
+		maxUploadMb: config.maxUploadMb
 	};
 };
 

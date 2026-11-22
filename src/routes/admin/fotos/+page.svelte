@@ -53,7 +53,8 @@
 			<figcaption>
 				<div class="small">{photo.userName}</div>
 				<div class="muted small">
-					{photo.themeTitle} · {formatShortDay(photo.day)} · {(photo.sizeBytes / 1e6).toFixed(1)} MB
+					{photo.themeTitle} · {formatShortDay(photo.day)} · {photo.type}
+					{(photo.sizeBytes / 1e6).toFixed(1)} MB
 				</div>
 				<div class="row" style="--gap: 2px">
 					<a class="btn ghost small" href={photoSrc(photo.id, 'original')} download>
