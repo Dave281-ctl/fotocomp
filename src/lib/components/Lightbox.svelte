@@ -31,6 +31,19 @@
 		index = null;
 	}
 
+	/** Klick auf den dunklen Rand neben dem eingepassten Bild? Dann schliessen. */
+	function besideImage(e: MouseEvent) {
+		const img = e.target;
+		if (!(img instanceof HTMLImageElement) || !img.naturalWidth) return false;
+		const r = img.getBoundingClientRect();
+		const scale = Math.min(r.width / img.naturalWidth, r.height / img.naturalHeight);
+		const w = img.naturalWidth * scale;
+		const h = img.naturalHeight * scale;
+		const x = e.clientX - r.left - (r.width - w) / 2;
+		const y = e.clientY - r.top - (r.height - h) / 2;
+		return x < 0 || y < 0 || x > w || y > h;
+	}
+
 	function toggleFullscreen() {
 		if (document.fullscreenElement) document.exitFullscreen();
 		else root?.requestFullscreen?.();
@@ -75,7 +88,7 @@
 		}}
 	>
 		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-		<div class="stage" onclick={(e) => e.target === e.currentTarget && close()}>
+		<div class="stage" onclick={(e) => (e.target === e.currentTarget || besideImage(e)) && close()}>
 			{#key photo.id}
 				<img src={photoSrc(photo.id, 2400)} alt="" />
 			{/key}
@@ -135,14 +148,15 @@
 	.stage {
 		position: absolute;
 		inset: 0;
-		display: grid;
-		place-items: center;
 		padding: 56px 0 64px;
 	}
 
+	/* Füllt den Bereich zwischen den Leisten; contain zeigt das Bild immer ganz.
+	   (max-height: 100% greift in einem Grid nicht, daher feste Grösse.) */
 	.stage img {
-		max-width: 100%;
-		max-height: 100%;
+		display: block;
+		width: 100%;
+		height: 100%;
 		object-fit: contain;
 		animation: fade 0.25s ease;
 	}
