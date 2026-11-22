@@ -26,24 +26,34 @@
 </div>
 
 <style>
+	/* Waagrecht scrollbar auf schmalen Bildschirmen, aber nie senkrecht.
+	   Linien als innere Schatten, damit nichts über den Rand ragt. */
 	.tabs {
 		display: flex;
 		gap: 4px;
 		overflow-x: auto;
-		border-bottom: 1px solid var(--line);
+		overflow-y: hidden;
+		scrollbar-width: none;
+		box-shadow: inset 0 -1px var(--line);
+	}
+
+	.tabs::-webkit-scrollbar {
+		display: none;
 	}
 
 	.tabs a {
 		padding: 10px 14px;
 		font-size: 14px;
 		color: var(--muted);
-		border-bottom: 2px solid transparent;
-		margin-bottom: -1px;
 		white-space: nowrap;
+	}
+
+	.tabs a:hover {
+		color: var(--text);
 	}
 
 	.tabs a.active {
 		color: var(--text);
-		border-color: var(--accent);
+		box-shadow: inset 0 -2px var(--accent);
 	}
 </style>
