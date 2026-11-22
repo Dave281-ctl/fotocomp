@@ -8,7 +8,8 @@ RUN npm run build && npm prune --omit=dev
 
 # ---- Laufzeit ----------------------------------------------------------
 FROM node:22-alpine
-RUN apk add --no-cache su-exec
+# perl: für ExifTool (Metadaten, RAW-Vorschau) · libraw-tools: RAW entwickeln
+RUN apk add --no-cache su-exec perl libraw-tools
 # Wird beim Release von GitHub Actions gesetzt (z.B. v0.2.0)
 ARG APP_VERSION=dev
 WORKDIR /app
@@ -16,7 +17,7 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000 \
     DATA_DIR=/data \
-    BODY_SIZE_LIMIT=60M \
+    BODY_SIZE_LIMIT=210M \
     APP_VERSION=$APP_VERSION
 
 COPY --from=build /app/build ./build

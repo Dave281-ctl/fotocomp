@@ -3,6 +3,7 @@ import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
 import { SESSION_COOKIE, setSessionCookie, validateSession } from '#lib/server/auth.ts';
 import { config } from '#lib/server/config.ts';
+import { closeExifTool } from '#lib/server/convert.ts';
 import { closeDb } from '#lib/server/db.ts';
 import { startJobs, stopJobs } from '#lib/server/jobs.ts';
 import { checkMailServer } from '#lib/server/mail.ts';
@@ -16,7 +17,7 @@ export const init: ServerInit = () => {
 	// Sauber herunterfahren (z.B. bei einem Update durch Watchtower)
 	process.once('sveltekit:shutdown', async () => {
 		stopJobs();
-		await closeDb();
+		await Promise.all([closeDb(), closeExifTool()]);
 	});
 };
 

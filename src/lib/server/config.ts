@@ -20,6 +20,10 @@ export const config = {
 	get origin() {
 		return env('ORIGIN', 'http://localhost:5173');
 	},
+	/** Höchste Dateigrösse eines Fotos in MB (RAW-Dateien sind gross). */
+	get maxUploadMb() {
+		return Number(env('MAX_UPLOAD_MB', '200')) || 200;
+	},
 	get dataDir() {
 		return env('DATA_DIR', './data');
 	},
