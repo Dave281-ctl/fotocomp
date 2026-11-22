@@ -106,7 +106,8 @@
 					</figure>
 					<div class="row" style="justify-content: space-between">
 						<p class="muted">
-							Dein Foto ist bereit. Ab {formatTime(phase.endsAt)} Uhr sehen es die anderen.
+							Dein Foto ist bereit. {phase.early ? 'Morgen ab' : 'Ab'}
+							{formatTime(phase.endsAt)} Uhr sehen es die anderen.
 						</p>
 						<div class="row" style="--gap: 4px">
 							<button class="btn small" onclick={() => (replacing = true)}>Ersetzen</button>
@@ -123,7 +124,14 @@
 						</div>
 					</div>
 				{:else}
-					<p class="muted">Lade dein Foto des Tages bis {formatTime(phase.endsAt)} Uhr hoch.</p>
+					{#if phase.early}
+						<p class="notice">
+							Heute hat niemand ein Foto hochgeladen. Du kannst schon dein Foto für morgen
+							hochladen, bis morgen {formatTime(phase.endsAt)} Uhr.
+						</p>
+					{:else}
+						<p class="muted">Lade dein Foto des Tages bis {formatTime(phase.endsAt)} Uhr hoch.</p>
+					{/if}
 					<Uploader
 						themeId={data.theme.id}
 						feedbackDefault={data.feedbackDefault}

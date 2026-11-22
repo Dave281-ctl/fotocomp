@@ -8,6 +8,9 @@
  *   05:00 (D+1)  Enthüllung, danach beginnt Tag D+1
  * Am Wochenbewertungstag gibt es keinen Upload; der ganze Tag ist Wochenbewertung
  * über die sechs Tage davor.
+ *
+ * Hat bis 20:00 niemand ein Foto hochgeladen, gibt es nichts zu bewerten. Dann
+ * öffnet der Upload für den Folgetag schon um 20:00 («früher Upload»).
  */
 import { TZDate } from '@date-fns/tz';
 
@@ -38,7 +41,7 @@ export interface ThemeSchedule {
 export type Phase =
 	| { kind: 'upcoming'; startsAt: Date }
 	| { kind: 'ended' }
-	| { kind: 'upload'; day: Day; endsAt: Date }
+	| { kind: 'upload'; day: Day; endsAt: Date; early?: boolean }
 	| { kind: 'voting'; day: Day; endsAt: Date }
 	| { kind: 'weekly'; day: Day; weekFrom: Day; weekTo: Day; endsAt: Date };
 
@@ -82,8 +85,11 @@ export function isWeeklyVoteDay(theme: ThemeSchedule, day: Day): boolean {
 	return theme.weeklyVoteDay != null && isoWeekday(day) === theme.weeklyVoteDay;
 }
 
-/** In welcher Phase befindet sich ein Thema zum Zeitpunkt `now`? */
-export function themePhase(theme: ThemeSchedule, now: Date): Phase {
+/**
+ * In welcher Phase befindet sich ein Thema zum Zeitpunkt `now`?
+ * `dayEmpty`: Für den laufenden Tag wurde kein Foto hochgeladen (siehe oben).
+ */
+export function themePhase(theme: ThemeSchedule, now: Date, dayEmpty = false): Phase {
 	const day = gameDay(now);
 	if (theme.endedAt && theme.endedAt <= now) return { kind: 'ended' };
 	if (day < theme.startDate)
@@ -103,6 +109,10 @@ export function themePhase(theme: ThemeSchedule, now: Date): Phase {
 	const { hour } = zurichParts(now);
 	if (hour >= DAY_START_HOUR && hour < VOTING_START_HOUR) {
 		return { kind: 'upload', day, endsAt: at(day, VOTING_START_HOUR) };
+	}
+	const next = addDays(day, 1);
+	if (dayEmpty && !isWeeklyVoteDay(theme, next) && (!theme.endDate || next <= theme.endDate)) {
+		return { kind: 'upload', day: next, endsAt: at(next, VOTING_START_HOUR), early: true };
 	}
 	return { kind: 'voting', day, endsAt: nextDayStart };
 }

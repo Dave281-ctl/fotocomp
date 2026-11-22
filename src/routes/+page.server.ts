@@ -1,17 +1,17 @@
 import { fail } from '@sveltejs/kit';
-import { lastRevealedDay, lastWeeklyVoteDay, themePhase } from '#lib/schedule.ts';
+import { lastRevealedDay, lastWeeklyVoteDay } from '#lib/schedule.ts';
 import { getCurrentRound, getParticipation } from '#lib/server/feedback.ts';
 import { getDayPhotos } from '#lib/server/gallery.ts';
 import { deletePhoto, findPhoto, savePhoto, UploadError } from '#lib/server/photos.ts';
 import { selectTheme } from '#lib/server/current-theme.ts';
 import { now } from '#lib/server/time.ts';
-import { getMembership, type Membership } from '#lib/server/themes.ts';
+import { getMembership, getPhase, type Membership } from '#lib/server/themes.ts';
 import { getMyPicks, getWeekPhotos, getWeeklyResult, savePicks } from '#lib/server/weekly.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Gibt es in diesem Thema gerade etwas zu tun (hochladen, bewerten, Wochenwahl)? */
 async function hasTodo({ theme }: Membership, userId: number, t: Date) {
-	const phase = themePhase(theme, t);
+	const phase = await getPhase(theme, t);
 	if (phase.kind === 'upload') return !(await findPhoto(userId, theme.id, phase.day));
 	if (phase.kind === 'voting') {
 		const photos = await getDayPhotos(theme.id, phase.day, userId, t);
@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					}))
 				)
 			: [];
-	const phase = themePhase(theme, t);
+	const phase = await getPhase(theme, t);
 	const myPhoto = phase.kind === 'upload' ? await findPhoto(user.id, theme.id, phase.day) : null;
 	const votingPhotos =
 		phase.kind === 'voting' ? await getDayPhotos(theme.id, phase.day, user.id, t) : [];
@@ -89,7 +89,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 async function uploadContext(userId: number, form: FormData) {
 	const membership = await getMembership(userId, Number(form.get('theme')));
 	if (!membership) return null;
-	const phase = themePhase(membership.theme, now());
+	const phase = await getPhase(membership.theme, now());
 	return phase.kind === 'upload' ? { theme: membership.theme, day: phase.day } : null;
 }
 

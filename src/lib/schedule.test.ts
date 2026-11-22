@@ -103,6 +103,36 @@ describe('themePhase', () => {
 	});
 });
 
+describe('Früher Upload, wenn heute niemand hochgeladen hat', () => {
+	it('öffnet um 20:00 den Upload für morgen bis morgen 20:00', () => {
+		expect(themePhase(theme, z('2026-11-18', 20), true)).toMatchObject({
+			kind: 'upload',
+			day: '2026-11-19',
+			endsAt: z('2026-11-19', 20),
+			early: true
+		});
+		expect(themePhase(theme, z('2026-11-19', 4, 59), true)).toMatchObject({
+			kind: 'upload',
+			day: '2026-11-19'
+		});
+	});
+
+	it('gilt nur für leere Tage', () => {
+		expect(themePhase(theme, z('2026-11-18', 20), false).kind).toBe('voting');
+	});
+
+	it('nicht vor dem Wochenbewertungstag', () => {
+		// Sa 21.11.: morgen (So) ist Wochenbewertung, dort gibt es keinen Upload
+		expect(themePhase(theme, z('2026-11-21', 21), true).kind).toBe('voting');
+	});
+
+	it('nicht am letzten Tag eines Themas mit Enddatum', () => {
+		const fixed = { ...theme, endDate: '2026-11-20' };
+		expect(themePhase(fixed, z('2026-11-20', 21), true).kind).toBe('voting');
+		expect(themePhase(fixed, z('2026-11-19', 21), true).kind).toBe('upload');
+	});
+});
+
 describe('Enthüllung', () => {
 	it('Resultat eines Tages ab 05:00 am Folgetag', () => {
 		expect(isRevealed('2026-11-18', z('2026-11-19', 4, 59))).toBe(false);

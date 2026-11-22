@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { isThemeOpen, themePhase } from '../schedule.ts';
 import { db } from './db.ts';
-import { themeMembers, themes, users, type Theme, type User } from './schema.ts';
+import { photos, themeMembers, themes, users, type Theme, type User } from './schema.ts';
 import { getSettings } from './settings.ts';
 import { now } from './time.ts';
 
@@ -24,6 +24,20 @@ export async function getMemberships(userId: number): Promise<Membership[]> {
 export async function getMembership(userId: number, themeId: number) {
 	if (!Number.isInteger(themeId)) return null;
 	return (await getMemberships(userId)).find((m) => m.theme.id === themeId) ?? null;
+}
+
+/**
+ * Die Phase eines Themas inkl. «frühem Upload»: Wurde für den laufenden Tag
+ * kein Foto hochgeladen, ist ab 20:00 schon der Upload für morgen offen.
+ */
+export async function getPhase(theme: Theme, t: Date) {
+	const phase = themePhase(theme, t);
+	if (phase.kind !== 'voting') return phase;
+	const [{ n }] = await db
+		.select({ n: count() })
+		.from(photos)
+		.where(and(eq(photos.themeId, theme.id), eq(photos.day, phase.day)));
+	return n === 0 ? themePhase(theme, t, true) : phase;
 }
 
 export async function getTheme(id: number): Promise<Theme> {
