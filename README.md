@@ -1,8 +1,17 @@
 # Fotocomp
 
-Ein schlichter, privater Foto-Wettbewerb unter Freunden.
+**Ein privater Foto-Wettbewerb unter Freunden – jeden Tag ein Foto, jeden Abend gegenseitig bewerten.**
 
-Ein Thema, jeden Tag ein Foto. Ab 20:00 Uhr bewerten alle die Fotos der anderen, um 05:00 Uhr wird das Resultat enthüllt. Einmal pro Woche wird das Wochenfoto gekürt. Und wer möchte, bekommt freundschaftliches, konstruktives Feedback.
+Fotocomp ist eine kleine Web-App, die du selbst betreibst, zum Beispiel auf einem Synology NAS. Ihr wählt ein Thema wie «Unterwegs» oder «Am Wasser». Jeder lädt tagsüber sein bestes Foto dazu hoch. Am Abend bewerten alle die Fotos der anderen anonym mit Sternen, am Morgen wird enthüllt, wer gewonnen hat. Einmal pro Woche wird das Wochenfoto gekürt, und wer möchte, bekommt freundschaftliches Feedback.
+
+Das Ziel: regelmässig fotografieren, voneinander lernen und dabei Spass haben. Ohne Werbung, ohne Algorithmus, ohne dass eure Fotos irgendwo anders landen.
+
+![Galerie mit den Tagessiegern](docs/screenshots/galerie.jpg)
+
+<p align="center">
+  <img src="docs/screenshots/mobil.png" alt="Einführung, Bewertung und Galerie auf dem Handy" width="760">
+</p>
+<p align="center"><sub>Auf dem Handy: kurze Einführung für neue Mitglieder · abends bewerten · die besten Fotos in der Galerie</sub></p>
 
 ## So funktioniert es
 
@@ -132,6 +141,8 @@ src/
 ### Technik
 
 Alles ist Open Source: [SvelteKit](https://svelte.dev) (MIT), [Drizzle ORM](https://orm.drizzle.team) (Apache-2.0), [PostgreSQL](https://www.postgresql.org), [sharp](https://sharp.pixelplumbing.com) (Apache-2.0), [ExifTool](https://exiftool.org) über [exiftool-vendored](https://github.com/photostructure/exiftool-vendored.js) (MIT), [libheif](https://github.com/strukturag/libheif) über [heic-decode](https://github.com/catdad-experiments/heic-decode) (LGPL-3.0 / ISC), [LibRaw](https://www.libraw.org) (LGPL-2.1), [Nodemailer](https://nodemailer.com) (MIT-0), [date-fns](https://date-fns.org) (MIT), [Lucide](https://lucide.dev) (ISC), [Inter](https://rsms.me/inter/) (OFL), Karten von [OpenStreetMap](https://www.openstreetmap.org/copyright) und [Watchtower](https://github.com/nicholas-fedor/watchtower) (Apache-2.0).
+
+Die Beispielfotos in den Screenshots stammen von [Unsplash](https://unsplash.com) (über [Lorem Picsum](https://picsum.photos)), u.a. von Austin Neill, Charlie Foster, Elias Carlsson, Luke Chesser, Paul Jarvis und Vadim Sherbakov.
 
 ## Lizenz
 
