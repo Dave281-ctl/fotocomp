@@ -24,28 +24,31 @@
 
 	<div class="list">
 		{#each data.open as theme (theme.id)}
-			<article class="card stack" class:mine={isMine(theme.id)}>
-				<div class="row" style="justify-content: space-between">
-					<a href="/themen/{theme.id}"><h2>{theme.title}</h2></a>
-					{#if isMine(theme.id)}
-						<span class="badge accent">Du machst mit</span>
-					{:else if theme.phase === 'upcoming'}
-						<span class="badge">Startet bald</span>
-					{/if}
-				</div>
-				{#if theme.description}<p>{theme.description}</p>{/if}
+			<!-- Die ganze Karte öffnet das Thema (Link über die Karte gespannt) -->
+			<article class="card stack theme" class:mine={isMine(theme.id)}>
+				<h2><a class="cover" href="/themen/{theme.id}">{theme.title}</a></h2>
+				{#if theme.description}<p class="description">{theme.description}</p>{/if}
 				<p class="muted small">
 					{themeSummary(theme).join(' · ')} · {theme.members}
 					{theme.members === 1 ? 'Teilnehmer' : 'Teilnehmende'}
 				</p>
-				<form method="POST" use:enhance>
-					<input type="hidden" name="id" value={theme.id} />
+				<div class="row footer">
 					{#if isMine(theme.id)}
-						<button class="btn ghost small" formaction="?/leave">Verlassen</button>
+						<span class="badge accent">Du machst mit</span>
+					{:else if theme.phase === 'upcoming'}
+						<span class="badge">Startet bald</span>
 					{:else}
-						<button class="btn primary small" formaction="?/join">Mitmachen</button>
+						<span></span>
 					{/if}
-				</form>
+					<form method="POST" use:enhance>
+						<input type="hidden" name="id" value={theme.id} />
+						{#if isMine(theme.id)}
+							<button class="btn ghost small" formaction="?/leave">Verlassen</button>
+						{:else}
+							<button class="btn primary small" formaction="?/join">Mitmachen</button>
+						{/if}
+					</form>
+				</div>
 			</article>
 		{/each}
 	</div>
@@ -70,8 +73,53 @@
 		gap: 16px;
 	}
 
+	.theme {
+		position: relative;
+		transition:
+			background 0.15s,
+			transform 0.15s;
+	}
+
+	.theme:hover {
+		background: var(--surface-2);
+	}
+
 	.card.mine {
 		outline: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+	}
+
+	/* Unsichtbare Fläche über der ganzen Karte */
+	.cover::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+	}
+
+	.cover:focus-visible {
+		outline: none;
+	}
+
+	.theme:has(.cover:focus-visible) {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.description {
+		flex: 1;
+	}
+
+	/* Knöpfe liegen über der Fläche und bleiben eigenständig klickbar */
+	.footer {
+		position: relative;
+		z-index: 1;
+		justify-content: space-between;
+		margin-top: auto;
+		pointer-events: none;
+	}
+
+	.footer > * {
+		pointer-events: auto;
 	}
 
 	.past {
