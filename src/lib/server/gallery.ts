@@ -128,7 +128,7 @@ export async function getDayPhotos(themeId: number, day: string, viewerId: numbe
 // --------------------------------------------------------------- Galerie
 
 /** Tagessieger und Wochenfotos aller enthüllten Tage bis `lastDay`. */
-async function getWinners(lastDay: string, now: Date) {
+export async function getWinners(lastDay: string, now: Date) {
 	const daily = await db
 		.select({
 			photoId: photos.id,
