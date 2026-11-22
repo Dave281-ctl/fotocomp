@@ -59,10 +59,10 @@
 			/>
 		</button>
 		<div class="pager row">
-			{#if data.prev}<a class="btn ghost" href="/foto/{data.prev}" aria-label="Vorheriges">
+			{#if data.prev}<a class="btn ghost icon" href="/foto/{data.prev}" aria-label="Vorheriges">
 					<ChevronLeft size={20} />
 				</a>{/if}
-			{#if data.next}<a class="btn ghost" href="/foto/{data.next}" aria-label="Nächstes">
+			{#if data.next}<a class="btn ghost icon" href="/foto/{data.next}" aria-label="Nächstes">
 					<ChevronRight size={20} />
 				</a>{/if}
 		</div>
@@ -147,7 +147,7 @@
 						<span class="small"><strong>{item.authorName}</strong></span>
 						<form method="POST" action="?/deleteFeedback" use:enhance>
 							<input type="hidden" name="id" value={item.id} />
-							<button class="btn ghost small" aria-label="Feedback löschen">Löschen</button>
+							<button class="btn danger small" aria-label="Feedback löschen">Löschen</button>
 						</form>
 					</div>
 					<p>{item.body}</p>

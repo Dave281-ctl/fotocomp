@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { LogOut, UserPlus } from '@lucide/svelte';
+	import { ChevronRight, LogOut, SunMoon, UserPlus } from '@lucide/svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import type { PageProps } from './$types';
 
@@ -52,35 +52,70 @@
 
 	<hr class="divider" />
 
-	<div class="stack" style="--gap: 4px">
-		<a class="item row" href="/profil/einladen"><UserPlus size={18} /> Freunde einladen</a>
-		<div class="item row">
+	<!-- Einstellungen als Liste: jede Zeile ist als Ganzes klickbar -->
+	<div class="list">
+		<a class="item" href="/profil/einladen">
+			<UserPlus size={18} />
+			<span>Freunde einladen</span>
+			<ChevronRight size={18} class="chevron" />
+		</a>
+		<div class="item static">
+			<SunMoon size={18} />
 			<span>Darstellung</span>
 			<ThemeToggle theme={data.theme} />
 		</div>
 		<form method="POST" action="/abmelden">
-			<button class="item row logout"><LogOut size={18} /> Abmelden</button>
+			<button class="item logout">
+				<LogOut size={18} />
+				<span>Abmelden</span>
+				<ChevronRight size={18} class="chevron" />
+			</button>
 		</form>
 	</div>
 </div>
 
 <style>
-	.item {
-		justify-content: flex-start;
-		padding: 12px 0;
-		font-size: 15px;
-		width: 100%;
+	.list {
+		border-radius: var(--radius);
+		background: var(--surface);
+		overflow: hidden;
 	}
 
-	.item:has(:global(.btn)) {
-		justify-content: space-between;
+	.item {
+		display: grid;
+		grid-template-columns: 22px 1fr auto;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+		min-height: 56px;
+		padding: 8px 16px;
+		border: 0;
+		background: none;
+		color: var(--text);
+		font: inherit;
+		font-size: 15px;
+		text-align: left;
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+
+	.list > * + * {
+		border-top: 1px solid var(--line);
+	}
+
+	.item:not(.static):hover {
+		background: var(--surface-2);
+	}
+
+	.item.static {
+		cursor: default;
+	}
+
+	.item :global(.chevron) {
+		color: var(--muted);
 	}
 
 	.logout {
-		background: none;
-		border: 0;
-		color: var(--muted);
-		font: inherit;
-		cursor: pointer;
+		color: var(--danger);
 	}
 </style>

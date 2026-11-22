@@ -12,7 +12,7 @@
 </script>
 
 <button
-	class="btn ghost"
+	class="btn ghost icon"
 	onclick={toggle}
 	title={current === 'dark' ? 'Heller Modus' : 'Dunkler Modus'}
 	aria-label="Hell/Dunkel umschalten"
