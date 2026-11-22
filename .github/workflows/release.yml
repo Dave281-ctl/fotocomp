@@ -2,22 +2,93 @@ name: Release
 
 # Bei jedem veröffentlichten GitHub-Release wird ein Docker-Image gebaut und
 # in die GitHub Container Registry geladen (ghcr.io/<owner>/fotocomp).
+#
+# Beide Prozessortypen (Intel/AMD und ARM) werden parallel auf eigenen,
+# passenden Servern gebaut – ohne langsame Emulation – und danach zu einem
+# gemeinsamen Image zusammengeführt.
 on:
   release:
     types: [published]
+  # Manuell starten (Actions → Release → Run workflow), z.B. um ein Release neu zu bauen.
   workflow_dispatch:
+    inputs:
+      version:
+        description: Version, z.B. v0.2.0
+        required: true
 
 permissions:
   contents: read
   packages: write
 
+env:
+  VERSION: ${{ github.event.release.tag_name || inputs.version }}
+
 jobs:
-  docker:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
-      - uses: docker/setup-qemu-action@v4
+      # Docker verlangt Kleinbuchstaben im Imagenamen
+      - run: echo "IMAGE=ghcr.io/${OWNER,,}/fotocomp" >> "$GITHUB_ENV"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Nur nach Digest hochladen; die Tags setzt der merge-Job.
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          build-args: APP_VERSION=${{ env.VERSION }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Digest merken
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+          echo "PLATFORM_PAIR=${{ matrix.platform }}" | tr '/' '-' >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - run: echo "IMAGE=ghcr.io/${OWNER,,}/fotocomp" >> "$GITHUB_ENV"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
       - uses: docker/setup-buildx-action@v4
 
       - uses: docker/login-action@v4
@@ -29,19 +100,18 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository_owner }}/fotocomp
+          images: ${{ env.IMAGE }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
             type=raw,value=latest
 
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: APP_VERSION=${{ github.event.release.tag_name || github.ref_name }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Gemeinsames Image erstellen
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Prüfen
+        run: docker buildx imagetools inspect "$IMAGE:latest"
