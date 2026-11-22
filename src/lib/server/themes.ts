@@ -6,15 +6,24 @@ import { themeMembers, themes, users, type Theme, type User } from './schema.ts'
 import { getSettings } from './settings.ts';
 import { now } from './time.ts';
 
-/** Das Thema, bei dem der User aktuell mitmacht (falls noch nicht beendet). */
-export async function getMembership(userId: number) {
-	const [row] = await db
+export type Membership = { member: typeof themeMembers.$inferSelect; theme: Theme };
+
+/** Alle laufenden (oder bald startenden) Themen, bei denen der User mitmacht. */
+export async function getMemberships(userId: number): Promise<Membership[]> {
+	const rows = await db
 		.select({ member: themeMembers, theme: themes })
 		.from(themeMembers)
 		.innerJoin(themes, eq(themeMembers.themeId, themes.id))
-		.where(and(eq(themeMembers.userId, userId), isNull(themeMembers.leftAt)));
-	if (!row || !isThemeOpen(row.theme, now())) return null;
-	return row;
+		.where(and(eq(themeMembers.userId, userId), isNull(themeMembers.leftAt)))
+		.orderBy(themes.startDate, themes.id);
+	const t = now();
+	return rows.filter((r) => isThemeOpen(r.theme, t));
+}
+
+/** Die Mitgliedschaft in einem bestimmten, noch offenen Thema. */
+export async function getMembership(userId: number, themeId: number) {
+	if (!Number.isInteger(themeId)) return null;
+	return (await getMemberships(userId)).find((m) => m.theme.id === themeId) ?? null;
 }
 
 export async function getTheme(id: number): Promise<Theme> {
@@ -65,15 +74,9 @@ export function canManageTheme(user: User, theme: Theme) {
 	return user.role === 'admin' || theme.createdBy === user.id;
 }
 
-/** Beitreten. Eine bestehende Mitgliedschaft wird dabei automatisch beendet. */
+/** Beitreten. Andere Themen bleiben bestehen; doppeltes Beitreten wird ignoriert. */
 export async function joinTheme(themeId: number, userId: number) {
-	await db.transaction(async (tx) => {
-		await tx
-			.update(themeMembers)
-			.set({ leftAt: new Date() })
-			.where(and(eq(themeMembers.userId, userId), isNull(themeMembers.leftAt)));
-		await tx.insert(themeMembers).values({ themeId, userId });
-	});
+	await db.insert(themeMembers).values({ themeId, userId }).onConflictDoNothing();
 }
 
 export async function leaveTheme(themeId: number, userId: number) {

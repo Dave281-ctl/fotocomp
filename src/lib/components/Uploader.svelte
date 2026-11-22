@@ -3,10 +3,11 @@
 	import { ImagePlus } from '@lucide/svelte';
 
 	let {
+		themeId,
 		feedbackDefault,
 		replacing = false,
 		error
-	}: { feedbackDefault: boolean; replacing?: boolean; error?: string } = $props();
+	}: { themeId: number; feedbackDefault: boolean; replacing?: boolean; error?: string } = $props();
 
 	let input: HTMLInputElement;
 	let preview = $state<string | null>(null);
@@ -44,6 +45,7 @@
 		};
 	}}
 >
+	<input type="hidden" name="theme" value={themeId} />
 	<label
 		class="drop"
 		class:dragging

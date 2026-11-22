@@ -6,7 +6,7 @@ import { themes } from '#lib/server/schema.ts';
 import { now } from '#lib/server/time.ts';
 import {
 	canCreateTheme,
-	getMembership,
+	getMemberships,
 	getTheme,
 	joinTheme,
 	leaveTheme,
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
 	const t = now();
 	const all = await db.select().from(themes).orderBy(desc(themes.startDate));
-	const membership = await getMembership(user.id);
+	const mine = (await getMemberships(user.id)).map((m) => m.theme.id);
 
 	const withInfo = await Promise.all(
 		all.map(async (theme) => ({
@@ -30,7 +30,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		open: withInfo.filter((x) => x.phase !== 'ended'),
 		past: withInfo.filter((x) => x.phase === 'ended'),
-		myThemeId: membership?.theme.id ?? null,
+		myThemeIds: mine,
 		canCreate: await canCreateTheme(user)
 	};
 };

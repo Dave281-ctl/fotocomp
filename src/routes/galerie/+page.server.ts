@@ -3,7 +3,7 @@ import { db } from '#lib/server/db.ts';
 import { getGallery } from '#lib/server/gallery.ts';
 import { photos, themes } from '#lib/server/schema.ts';
 import { now } from '#lib/server/time.ts';
-import { getMembership } from '#lib/server/themes.ts';
+import { getMemberships } from '#lib/server/themes.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.orderBy(desc(themes.startDate));
 
 	const requested = Number(url.searchParams.get('thema'));
-	const membership = await getMembership(user.id);
+	const [membership] = await getMemberships(user.id);
 	const themeId =
 		themeList.find((t) => t.id === requested)?.id ??
 		themeList.find((t) => t.id === membership?.theme.id)?.id ??

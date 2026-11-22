@@ -3,7 +3,7 @@ import { gameDay } from '#lib/schedule.ts';
 import { db } from '#lib/server/db.ts';
 import { themes } from '#lib/server/schema.ts';
 import { now } from '#lib/server/time.ts';
-import { canCreateTheme, getMembership, joinTheme, parseThemeForm } from '#lib/server/themes.ts';
+import { canCreateTheme, joinTheme, parseThemeForm } from '#lib/server/themes.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -22,8 +22,8 @@ export const actions: Actions = {
 			.insert(themes)
 			.values({ ...values, createdBy: user.id })
 			.returning();
-		// Wer ein Thema erstellt und noch keines hat, macht automatisch mit.
-		if (!(await getMembership(user.id))) await joinTheme(theme.id, user.id);
+		// Wer ein Thema erstellt, macht automatisch mit.
+		await joinTheme(theme.id, user.id);
 		redirect(303, `/themen/${theme.id}`);
 	}
 };

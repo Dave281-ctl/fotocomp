@@ -16,7 +16,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const user = locals.user!;
 	const theme = await getTheme(Number(params.id));
-	const membership = await getMembership(user.id);
+	const membership = await getMembership(user.id, theme.id);
 	const t = now();
 	const phase = themePhase(theme, t).kind;
 	const round = phase === 'ended' ? null : await getCurrentRound(theme, t);
@@ -26,8 +26,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		theme,
 		phase,
 		members: await listMembers(theme.id),
-		isMine: membership?.theme.id === theme.id,
-		hasOtherTheme: !!membership && membership.theme.id !== theme.id,
+		isMine: !!membership,
 		canManage: canManageTheme(user, theme)
 	};
 };

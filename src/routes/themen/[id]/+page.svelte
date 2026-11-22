@@ -24,9 +24,7 @@
 				<span class="badge accent">Du machst mit</span>
 				<button class="btn ghost small" formaction="?/leave">Verlassen</button>
 			{:else}
-				<button class="btn primary" formaction="?/join">
-					{data.hasOtherTheme ? 'Zu diesem Thema wechseln' : 'Mitmachen'}
-				</button>
+				<button class="btn primary" formaction="?/join">Mitmachen</button>
 			{/if}
 		</form>
 	{:else}

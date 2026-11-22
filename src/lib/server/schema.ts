@@ -116,9 +116,9 @@ export const themeMembers = pgTable(
 		leftAt: timestamp('left_at', { withTimezone: true })
 	},
 	(t) => [
-		// Jeder User ist höchstens in einem Thema aktiv.
-		uniqueIndex('theme_members_one_active')
-			.on(t.userId)
+		// Pro Thema höchstens eine aktive Mitgliedschaft je User.
+		uniqueIndex('theme_members_active')
+			.on(t.themeId, t.userId)
 			.where(sql`${t.leftAt} is null`)
 	]
 );

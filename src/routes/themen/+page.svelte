@@ -1,17 +1,10 @@
 <script lang="ts">
-	import { enhance, type SubmitFunction } from '$app/forms';
+	import { enhance } from '$app/forms';
 	import { themeSummary } from '#lib/schedule.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-
-	/** Beim Wechsel des Themas kurz nachfragen. */
-	const confirmSwitch: SubmitFunction = ({ action, cancel }) => {
-		const switching = action.search.includes('join') && data.myThemeId;
-		if (switching && !confirm('Thema wechseln? Deine bisherigen Fotos bleiben im alten Thema.')) {
-			cancel();
-		}
-	};
+	const isMine = (id: number) => data.myThemeIds.includes(id);
 </script>
 
 <svelte:head><title>Themen · Fotocomp</title></svelte:head>
@@ -20,7 +13,7 @@
 	<div class="row" style="justify-content: space-between">
 		<div class="stack" style="--gap: 6px">
 			<p class="eyebrow">Themen</p>
-			<h1>Wähle dein Thema</h1>
+			<h1>Wähle deine Themen</h1>
 		</div>
 		{#if data.canCreate}<a class="btn" href="/themen/neu">Neues Thema</a>{/if}
 	</div>
@@ -31,11 +24,11 @@
 
 	<div class="list">
 		{#each data.open as theme (theme.id)}
-			<article class="card stack" class:mine={theme.id === data.myThemeId}>
+			<article class="card stack" class:mine={isMine(theme.id)}>
 				<div class="row" style="justify-content: space-between">
 					<a href="/themen/{theme.id}"><h2>{theme.title}</h2></a>
-					{#if theme.id === data.myThemeId}
-						<span class="badge accent">Dein Thema</span>
+					{#if isMine(theme.id)}
+						<span class="badge accent">Du machst mit</span>
 					{:else if theme.phase === 'upcoming'}
 						<span class="badge">Startet bald</span>
 					{/if}
@@ -45,9 +38,9 @@
 					{themeSummary(theme).join(' · ')} · {theme.members}
 					{theme.members === 1 ? 'Teilnehmer' : 'Teilnehmende'}
 				</p>
-				<form method="POST" use:enhance={confirmSwitch}>
+				<form method="POST" use:enhance>
 					<input type="hidden" name="id" value={theme.id} />
-					{#if theme.id === data.myThemeId}
+					{#if isMine(theme.id)}
 						<button class="btn ghost small" formaction="?/leave">Verlassen</button>
 					{:else}
 						<button class="btn primary small" formaction="?/join">Mitmachen</button>

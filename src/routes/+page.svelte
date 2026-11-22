@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Lightbox from '#lib/components/Lightbox.svelte';
 	import PhotoFeed from '#lib/components/PhotoFeed.svelte';
+	import ThemeTabs from '#lib/components/ThemeTabs.svelte';
 	import Uploader from '#lib/components/Uploader.svelte';
 	import { photoSrc, photoSrcset } from '#lib/media.ts';
 	import { formatDay, formatTime, formatWeekdayTime } from '#lib/schedule.ts';
@@ -62,6 +63,7 @@
 		</div>
 	{:else}
 		{@const phase = data.phase}
+		<ThemeTabs tabs={data.tabs} current={data.theme.id} />
 		<header class="stack" style="--gap: 10px">
 			<p class="eyebrow">
 				{#if phase.kind === 'upload' || phase.kind === 'voting' || phase.kind === 'weekly'}
@@ -76,7 +78,7 @@
 
 		{#if data.feedbackRound && data.feedbackRound.participating !== false}
 			{@const round = data.feedbackRound}
-			<a class="notice row feedback-hint" href="/feedback">
+			<a class="notice row feedback-hint" href="/feedback?thema={data.theme.id}">
 				<span>
 					{#if round.active}
 						Feedback-Runde läuft bis {formatWeekdayTime(round.endsAt)} Uhr.
@@ -115,6 +117,7 @@
 									if (!confirm('Foto wirklich löschen?')) cancel();
 								}}
 							>
+								<input type="hidden" name="theme" value={data.theme.id} />
 								<button class="btn danger small">Löschen</button>
 							</form>
 						</div>
@@ -122,6 +125,7 @@
 				{:else}
 					<p class="muted">Lade dein Foto des Tages bis {formatTime(phase.endsAt)} Uhr hoch.</p>
 					<Uploader
+						themeId={data.theme.id}
 						feedbackDefault={data.feedbackDefault}
 						replacing={!!data.myPhoto}
 						error={form?.uploadError}
@@ -183,6 +187,7 @@
 								picksDirty = false;
 							}}
 					>
+						<input type="hidden" name="theme" value={data.theme.id} />
 						<input type="hidden" name="picks" value={picks.join(',')} />
 						<span class="muted small">
 							{picks.length} von 3 gewählt

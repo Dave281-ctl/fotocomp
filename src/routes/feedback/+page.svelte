@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { Check } from '@lucide/svelte';
+	import ThemeTabs from '#lib/components/ThemeTabs.svelte';
 	import { photoSrc } from '#lib/media.ts';
 	import { formatDay, formatShortDay, formatTime, zurichParts } from '#lib/schedule.ts';
 	import type { PageProps } from './$types';
@@ -14,6 +15,7 @@
 <svelte:head><title>Feedback-Runde · Fotocomp</title></svelte:head>
 
 <div class="page stack" style="--gap: 32px">
+	<ThemeTabs tabs={data.tabs} current={data.theme.id} />
 	<div class="stack" style="--gap: 8px">
 		<p class="eyebrow">Feedback-Runde · {data.theme.title}</p>
 		<h1>Gemeinsam besser werden</h1>
@@ -35,6 +37,7 @@
 		</p>
 
 		<form method="POST" action="?/participate" class="row" use:enhance>
+			<input type="hidden" name="theme" value={data.theme.id} />
 			{#if data.participating === null}
 				<span>Machst du mit?</span>
 			{:else}
