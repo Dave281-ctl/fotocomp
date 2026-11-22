@@ -70,4 +70,45 @@ export function rankPhotographers(
 	return assignRanks([...totals.values()], (t) => [t.total, t.days]);
 }
 
+/** Ränge innerhalb jeder Gruppe (z.B. Thema + Tag); liefert die Erstplatzierten. */
+function groupWinners<T extends { photoId: number; group: string }>(
+	rows: T[],
+	score: (row: T) => number[],
+	counts: (row: T) => boolean
+): number[] {
+	const winners: number[] = [];
+	for (const group of Map.groupBy(rows, (r) => r.group).values()) {
+		for (const r of assignRanks(group, score)) {
+			if (r.rank === 1 && counts(r)) winners.push(r.photoId);
+		}
+	}
+	return winners;
+}
+
+/**
+ * Tagessieger über viele Tage und Themen, aus Stimmen-Summen pro Foto.
+ * Gleiche Regeln wie `rankDaily`; Fotos ohne Stimmen gewinnen nie.
+ */
+export function dailyWinners(
+	rows: { photoId: number; group: string; votes: number; sum: number }[]
+): number[] {
+	const scored = rows.map((r) => ({ ...r, average: r.votes ? round(r.sum / r.votes) : 0 }));
+	return groupWinners(
+		scored,
+		(r) => [r.average, r.votes],
+		(r) => r.votes > 0
+	);
+}
+
+/** Wochenfotos über viele Wochen und Themen. Gleiche Regeln wie `rankWeekly`. */
+export function weeklyWinners(
+	rows: { photoId: number; group: string; points: number; firsts: number }[]
+): number[] {
+	return groupWinners(
+		rows,
+		(r) => [r.points, r.firsts],
+		(r) => r.points > 0
+	);
+}
+
 const round = (n: number) => Math.round(n * 100) / 100;

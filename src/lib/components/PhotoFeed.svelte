@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Expand } from '@lucide/svelte';
+	import { Crown, Expand, Trophy } from '@lucide/svelte';
 	import { photoSrc, photoSrcset } from '../media.ts';
 	import type { FeedPhoto } from '../types.ts';
 	import Avatar from './Avatar.svelte';
@@ -11,7 +11,8 @@
 		picks,
 		onopen,
 		onrate,
-		onpick
+		onpick,
+		themeHref
 	}: {
 		photos: FeedPhoto[];
 		/** Bewertungsmodus: Namen verborgen, Sterne unter jedem fremden Foto. */
@@ -21,6 +22,8 @@
 		onopen: (index: number) => void;
 		onrate?: (photo: FeedPhoto, stars: number) => void;
 		onpick?: (photo: FeedPhoto) => void;
+		/** Galerie: Thema neben dem Namen zeigen, mit Link zum Filtern. */
+		themeHref?: (themeId: number) => string;
 	} = $props();
 
 	const picking = $derived(picks !== undefined);
@@ -50,9 +53,15 @@
 					style="aspect-ratio: {ratio}"
 				/>
 				{#if place}<span class="place">{place}</span>{/if}
-				{#if photo.rank === 1 && photo.votes && !voting && !picking}<span class="winner">
-						Tagessieg
-					</span>{/if}
+				{#if photo.badge && !voting && !picking}
+					<span class="award" class:week={photo.badge === 'week'}>
+						{#if photo.badge === 'week'}
+							<Crown size={13} strokeWidth={2} /> Wochenfoto
+						{:else}
+							<Trophy size={13} strokeWidth={2} /> Tagessieg
+						{/if}
+					</span>
+				{/if}
 			</button>
 			{#if picking}
 				<button class="expand" onclick={() => onopen(i)} aria-label="Gross anzeigen">
@@ -63,10 +72,17 @@
 				{#if voting && !photo.isOwn}
 					<Stars value={photo.myStars} onrate={(s) => onrate?.(photo, s)} />
 				{:else if photo.userName}
-					<a class="who" href="/foto/{photo.id}">
-						<Avatar name={photo.userName} id={photo.userId} />
-						<span>{photo.isOwn ? `${photo.userName} (du)` : photo.userName}</span>
-					</a>
+					<div class="who">
+						<a class="person" href="/foto/{photo.id}">
+							<Avatar name={photo.userName} id={photo.userId} />
+							<span>{photo.isOwn ? `${photo.userName} (du)` : photo.userName}</span>
+						</a>
+						{#if themeHref && photo.theme}
+							<a class="theme" href={themeHref(photo.theme.id)} title="Nur dieses Thema zeigen">
+								{photo.theme.title}
+							</a>
+						{/if}
+					</div>
 					{#if photo.average !== null}
 						<span class="score muted small">
 							{photo.votes ? `★ ${photo.average.toFixed(1)}` : '–'}
@@ -158,15 +174,27 @@
 		cursor: zoom-in;
 	}
 
-	.winner {
+	/* Auszeichnung: dezent auf dem Foto, Wochenfoto in der Akzentfarbe */
+	.award {
 		position: absolute;
 		top: 12px;
 		left: 12px;
-		padding: 4px 10px;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 11px 5px 9px;
 		border-radius: 999px;
 		font-size: 11px;
+		font-weight: 500;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
+		color: #fff;
+		background: rgb(0 0 0 / 0.5);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+	}
+
+	.award.week {
 		background: var(--accent);
 		color: var(--accent-text);
 	}
@@ -183,9 +211,39 @@
 	.who {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
+		min-width: 0;
 		font-size: 14px;
+	}
+
+	.score {
+		flex: none;
+		white-space: nowrap;
+	}
+
+	.person {
+		display: flex;
+		flex: none;
+		align-items: center;
+		gap: 10px;
 		font-weight: 500;
+	}
+
+	/* Thema: leise neben dem Namen, kürzt sich bei Platzmangel */
+	.theme {
+		overflow: hidden;
+		color: var(--muted);
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.theme::before {
+		content: '·';
+		margin-right: 8px;
+	}
+
+	.theme:hover {
+		color: var(--text);
 	}
 
 	@media (max-width: 720px) {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { rankDaily, rankPhotographers, rankWeekly } from './scoring.ts';
+import {
+	dailyWinners,
+	rankDaily,
+	rankPhotographers,
+	rankWeekly,
+	weeklyWinners
+} from './scoring.ts';
 
 describe('rankDaily', () => {
 	it('sortiert nach Durchschnitt', () => {
@@ -73,5 +79,40 @@ describe('rankPhotographers', () => {
 			[1, 7.5, 1],
 			[2, 4.5, 2]
 		]);
+	});
+});
+
+describe('Sieger über mehrere Tage und Themen', () => {
+	it('ermittelt pro Thema und Tag den Tagessieg, Gleichstand zählt doppelt', () => {
+		const winners = dailyWinners([
+			{ photoId: 1, group: '1:2026-11-18', votes: 2, sum: 9 }, // 4.5
+			{ photoId: 2, group: '1:2026-11-18', votes: 2, sum: 8 },
+			{ photoId: 3, group: '2:2026-11-18', votes: 2, sum: 6 }, // 3.0, anderes Thema
+			{ photoId: 4, group: '1:2026-11-19', votes: 2, sum: 10 },
+			{ photoId: 5, group: '1:2026-11-19', votes: 2, sum: 10 }
+		]);
+		expect(winners.sort()).toEqual([1, 3, 4, 5]);
+	});
+
+	it('bei gleichem Schnitt gewinnt, wer mehr Stimmen hat', () => {
+		const winners = dailyWinners([
+			{ photoId: 1, group: 'a', votes: 1, sum: 5 },
+			{ photoId: 2, group: 'a', votes: 3, sum: 15 }
+		]);
+		expect(winners).toEqual([2]);
+	});
+
+	it('ohne Stimmen oder Punkte gibt es keinen Sieger', () => {
+		expect(dailyWinners([{ photoId: 1, group: 'a', votes: 0, sum: 0 }])).toEqual([]);
+		expect(weeklyWinners([{ photoId: 1, group: 'w', points: 0, firsts: 0 }])).toEqual([]);
+	});
+
+	it('Wochenfoto nach Punkten, dann nach Erstplatzierungen', () => {
+		const winners = weeklyWinners([
+			{ photoId: 1, group: 'w', points: 6, firsts: 1 },
+			{ photoId: 2, group: 'w', points: 6, firsts: 2 },
+			{ photoId: 3, group: 'v', points: 1, firsts: 0 }
+		]);
+		expect(winners.sort()).toEqual([2, 3]);
 	});
 });

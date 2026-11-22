@@ -2,7 +2,7 @@ import { and, between, eq } from 'drizzle-orm';
 import { addDays, isRevealed, themePhase } from '../schedule.ts';
 import { rankPhotographers, rankWeekly } from '../scoring.ts';
 import { db } from './db.ts';
-import { decorate } from './gallery.ts';
+import { decorate, photoColumns } from './gallery.ts';
 import { photos, users, weeklyVotes, type Theme } from './schema.ts';
 import { isMember } from './themes.ts';
 
@@ -12,15 +12,7 @@ export const WEEKLY_POINTS = [3, 2, 1] as const;
 /** Alle Fotos der Woche vor dem Wochenbewertungstag. */
 export async function getWeekPhotos(themeId: number, voteDay: string, viewerId: number, now: Date) {
 	const rows = await db
-		.select({
-			id: photos.id,
-			day: photos.day,
-			width: photos.width,
-			height: photos.height,
-			userId: photos.userId,
-			feedbackWanted: photos.feedbackWanted,
-			userName: users.name
-		})
+		.select(photoColumns)
 		.from(photos)
 		.innerJoin(users, eq(photos.userId, users.id))
 		.where(
@@ -113,7 +105,13 @@ export async function getWeeklyResult(
 	const byId = new Map(week.map((p) => [p.id, p]));
 	const winners = ranking
 		.filter((r) => r.rank === 1 && r.points > 0)
-		.map((r) => ({ ...byId.get(r.photoId)!, rank: null, average: null, points: r.points }));
+		.map((r) => ({
+			...byId.get(r.photoId)!,
+			rank: null,
+			average: null,
+			points: r.points,
+			badge: 'week' as const
+		}));
 
 	const names = new Map(week.map((p) => [p.userId, p.userName]));
 	const photographers = rankPhotographers(

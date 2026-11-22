@@ -31,4 +31,9 @@ export interface FeedPhoto {
 	average: number | null;
 	votes: number | null;
 	rank: number | null;
+	themeId: number;
+	/** Auszeichnung: Tagessieg oder Wochenfoto (nur nach der Enthüllung). */
+	badge: 'day' | 'week' | null;
+	/** Nur in der Galerie gesetzt, um das Thema neben dem Namen zu zeigen. */
+	theme?: { id: number; title: string };
 }

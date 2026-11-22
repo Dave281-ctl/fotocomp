@@ -110,6 +110,10 @@
 				<Stars value={photo.myStars} size={26} onrate={(s) => onrate?.(photo, s)} />
 			{:else if photo.userName}
 				<span>{photo.userName}</span>
+				{#if photo.theme}<span class="dim">{photo.theme.title}</span>{/if}
+				{#if photo.badge}
+					<span class="dim">{photo.badge === 'week' ? 'Wochenfoto' : 'Tagessieg'}</span>
+				{/if}
 				{#if photo.average !== null && photo.votes}
 					<span class="dim">★ {photo.average.toFixed(1)} · {photo.votes} Stimmen</span>
 				{/if}

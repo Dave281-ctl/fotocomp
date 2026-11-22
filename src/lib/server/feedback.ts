@@ -1,7 +1,7 @@
 import { and, asc, between, eq, gt, inArray, isNull } from 'drizzle-orm';
 import { addDays, autoFeedbackRound, gameDay, isPhotoPublic } from '../schedule.ts';
 import { db } from './db.ts';
-import { decorate } from './gallery.ts';
+import { decorate, photoColumns } from './gallery.ts';
 import {
 	feedback,
 	feedbackRoundMembers,
@@ -208,15 +208,7 @@ export async function getRoundPhotos(round: FeedbackRound, viewerId: number, now
 	if (participants.length === 0) return [];
 	const { from, to } = roundDays(round);
 	const rows = await db
-		.select({
-			id: photos.id,
-			day: photos.day,
-			width: photos.width,
-			height: photos.height,
-			userId: photos.userId,
-			feedbackWanted: photos.feedbackWanted,
-			userName: users.name
-		})
+		.select(photoColumns)
 		.from(photos)
 		.innerJoin(users, eq(photos.userId, users.id))
 		.where(
