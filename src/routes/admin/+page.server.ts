@@ -1,4 +1,5 @@
 import { count, sum } from 'drizzle-orm';
+import { config } from '#lib/server/config.ts';
 import { db } from '#lib/server/db.ts';
 import { feedback, photos, themes, users } from '#lib/server/schema.ts';
 import type { PageServerLoad } from './$types';
@@ -9,6 +10,7 @@ export const load: PageServerLoad = async () => {
 	const [t] = await db.select({ n: count() }).from(themes);
 	const [f] = await db.select({ n: count() }).from(feedback);
 	return {
+		version: config.version,
 		stats: [
 			{ label: 'Benutzer', value: u.n },
 			{ label: 'Fotos', value: p.n },

@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
 import { SESSION_COOKIE, setSessionCookie, validateSession } from '#lib/server/auth.ts';
+import { config } from '#lib/server/config.ts';
 import { closeDb } from '#lib/server/db.ts';
 import { startJobs, stopJobs } from '#lib/server/jobs.ts';
 import { checkMailServer } from '#lib/server/mail.ts';
@@ -9,6 +10,7 @@ import { checkMailServer } from '#lib/server/mail.ts';
 /** Startet die Erinnerungsmails im Hintergrund. */
 export const init: ServerInit = () => {
 	if (building) return;
+	console.log(`Fotocomp ${config.version} gestartet.`);
 	startJobs();
 	void checkMailServer();
 	// Sauber herunterfahren (z.B. bei einem Update durch Watchtower)

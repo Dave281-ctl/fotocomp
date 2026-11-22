@@ -13,6 +13,10 @@ function env(name: string, fallback?: string): string {
 }
 
 export const config = {
+	/** Release-Version aus dem Docker-Image, lokal «dev». */
+	get version() {
+		return env('APP_VERSION', 'dev');
+	},
 	get origin() {
 		return env('ORIGIN', 'http://localhost:5173');
 	},
