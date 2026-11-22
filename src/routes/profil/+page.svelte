@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ChevronRight, LogOut, SunMoon, UserPlus } from '@lucide/svelte';
+	import { ChevronRight, CircleHelp, LogOut, SunMoon, UserPlus } from '@lucide/svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import type { PageProps } from './$types';
 
@@ -57,6 +57,11 @@
 		<a class="item" href="/profil/einladen">
 			<UserPlus size={18} />
 			<span>Freunde einladen</span>
+			<ChevronRight size={18} class="chevron" />
+		</a>
+		<a class="item" href="/willkommen">
+			<CircleHelp size={18} />
+			<span>So funktioniert Fotocomp</span>
 			<ChevronRight size={18} class="chevron" />
 		</a>
 		<div class="item static">

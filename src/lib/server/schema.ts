@@ -36,6 +36,8 @@ export const users = pgTable('users', {
 	feedbackDefault: boolean('feedback_default').notNull().default(true),
 	showGps: boolean('show_gps').notNull().default(true),
 	emailNotifications: boolean('email_notifications').notNull().default(true),
+	/** Gesetzt, sobald die Einführung abgeschlossen ist. */
+	onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
 	createdAt: createdAt()
 });
 
