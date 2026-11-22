@@ -13,11 +13,15 @@ Ein Thema, jeden Tag ein Foto. Ab 20:00 Uhr bewerten alle die Fotos der anderen,
 | 05:00                | **Enthüllung**: Rangliste mit Namen, danach beginnt der nächste Tag                               |
 | Wochentag (z.B. So.) | **Wochenbewertung**: jeder wählt seine Top 3 der Woche, am nächsten Morgen gibt es das Wochenfoto |
 
-- **Themen** haben einen Titel und eine Beschreibung, dazu ein Enddatum oder sie laufen wiederkehrend. Mehrere Themen können parallel laufen, jeder macht bei einem mit.
+Hat bis 20:00 Uhr im Thema niemand ein Foto hochgeladen, gibt es nichts zu bewerten. Dann ist der Upload für den nächsten Tag sofort offen (ausser vor dem Wochenbewertungstag und am letzten Tag eines Themas).
+
+- **Themen** haben einen Titel und eine Beschreibung, dazu ein Enddatum oder sie laufen wiederkehrend. Mehrere Themen können parallel laufen, und jeder kann bei mehreren mitmachen. Auf der Startseite wechselt man oben per Reiter zwischen den eigenen Themen; ein Punkt zeigt, wo noch etwas zu tun ist.
 - **Feedback**: Pro Foto lässt sich festlegen, ob Feedback willkommen ist. Feedback sieht nur der Fotograf. Zusätzlich gibt es **Feedback-Runden** pro Thema, automatisch (z.B. jeden Montag 19:00) oder von Hand gestartet.
+- **Galerie**: Standardmässig die Tagessieger und Wochenfotos aller Themen, mit Badge. Auf Wunsch alle Fotos, gefiltert nach Thema und/oder Person.
+- **Erinnerungen per Mail**: Pro Zeitpunkt höchstens eine Mail, auch bei mehreren Themen, und nie mehr als eine pro 30 Minuten. Oben steht eine persönliche Zeile, etwa neues Feedback, ein eigener Tagessieg oder eine Serie. Die Texte stehen in [`src/lib/mail-texts.ts`](src/lib/mail-texts.ts). Abschalten lassen sich die Erinnerungen im Profil.
 - **Login ohne Passwort**: Login-Link oder 6-stelliger Code per Mail. Auf demselben Gerät bleibt man angemeldet (30 Tage gleitend).
 - **Fotos**: Die Originale werden unverändert nach Benutzer abgelegt. Für Handy, Monitor und Vollbild gibt es WebP-Thumbnails. Die Detailansicht zeigt Kamera, Objektiv, Belichtung und GPS.
-- **Admin**: Der erste registrierte User ist Admin. Admins verwalten Benutzer, Fotos, Themen und Einstellungen und können weitere Admins ernennen.
+- **Admin**: Der erste registrierte User ist Admin. Admins verwalten Benutzer, Fotos, Themen und Einstellungen und können weitere Admins ernennen. Die Admin-Übersicht zeigt die installierte Version.
 - **Einladen** per Mail oder Link (Signal, WhatsApp, Matrix …) unter Profil → Freunde einladen.
 - **Dunkelmodus** als Standard, auf Wunsch hell.
 
@@ -49,6 +53,7 @@ Im Admin-Bereich kannst du die Registrierung danach auf «nur mit Einladung» st
 1. Auf GitHub ein neues **Release** erstellen (z.B. `v0.2.0`).
 2. GitHub Actions baut das Docker-Image (amd64 und arm64) und lädt es nach `ghcr.io/dave281-ctl/fotocomp`.
 3. **Watchtower** auf dem NAS prüft alle 30 Minuten, ob es ein neues Image gibt, und startet die App neu. Datenbank-Migrationen laufen beim Start automatisch.
+4. Ob das Update angekommen ist, zeigt die Version unten in der Admin-Übersicht.
 
 > Nach dem allerersten Release muss das Paket einmalig öffentlich gemacht werden, damit das NAS es ohne Anmeldung laden kann: GitHub → Profil → Packages → `fotocomp` → Package settings → Change visibility → Public.
 
@@ -99,12 +104,12 @@ npm run dev          # http://localhost:5173
 
 Mit `FAKE_NOW=2026-11-18T20:30` in der `.env` lässt sich die Uhrzeit simulieren (nur im Dev-Modus), z.B. um die Bewertung zu testen.
 
-| Befehl                | Zweck                                    |
-| --------------------- | ---------------------------------------- |
-| `npm run check`       | TypeScript- und Svelte-Prüfung           |
-| `npm run lint`        | Prettier und ESLint                      |
-| `npm test`            | Unit-Tests (Zeitlogik, Punkteberechnung) |
-| `npm run db:generate` | Migration nach einer Schema-Änderung     |
+| Befehl                | Zweck                                     |
+| --------------------- | ----------------------------------------- |
+| `npm run check`       | TypeScript- und Svelte-Prüfung            |
+| `npm run lint`        | Prettier und ESLint                       |
+| `npm test`            | Unit-Tests (Zeitlogik, Punkte, Mailtexte) |
+| `npm run db:generate` | Migration nach einer Schema-Änderung      |
 
 ### Aufbau
 
@@ -114,6 +119,7 @@ src/
 ├─ lib/
 │  ├─ schedule.ts          Phasen aus der Uhrzeit (getestet)
 │  ├─ scoring.ts           Tages- und Wochenwertung (getestet)
+│  ├─ mail-texts.ts        Texte der Erinnerungsmails (getestet)
 │  ├─ components/          Feed, Vollbild, Sterne, Upload …
 │  └─ server/              Datenbank, Auth, Fotos, Feedback, Mails
 └─ routes/                 Heute, Galerie, Themen, Foto, Profil, Admin
