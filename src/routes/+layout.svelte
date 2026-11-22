@@ -2,6 +2,7 @@
 	import '@fontsource-variable/inter';
 	import '../app.css';
 	import Nav from '#lib/components/Nav.svelte';
+	import PullToRefresh from '#lib/components/PullToRefresh.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -13,6 +14,7 @@
 
 {#if data.user}
 	<Nav user={data.user} theme={data.theme} />
+	<PullToRefresh />
 {/if}
 
 <main class:with-nav={data.user}>
