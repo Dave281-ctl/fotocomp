@@ -1,5 +1,13 @@
 <script lang="ts">
 	import { MapPin } from '@lucide/svelte';
+	import {
+		cameraName,
+		formatAperture,
+		formatExposure,
+		formatFocal,
+		formatTaken,
+		megapixels
+	} from '../exif-format.ts';
 	import type { PhotoExif } from '../types.ts';
 
 	let {
@@ -15,25 +23,8 @@
 		original?: { type: string; sizeBytes: number };
 	} = $props();
 
-	const camera = $derived.by(() => {
-		const { make, model } = exif;
-		if (!model) return make;
-		// Viele Hersteller wiederholen den Namen im Modell («Canon Canon EOS R6»)
-		return make && !model.toLowerCase().startsWith(make.toLowerCase().split(' ')[0])
-			? `${make} ${model}`
-			: model;
-	});
-
-	const exposure = (t: number) => (t >= 1 ? `${t} s` : `1/${Math.round(1 / t)} s`);
-	const taken = $derived(
-		exif.takenAt
-			? new Intl.DateTimeFormat('de-CH', {
-					dateStyle: 'long',
-					timeStyle: 'short',
-					timeZone: 'Europe/Zurich'
-				}).format(new Date(exif.takenAt))
-			: null
-	);
+	const camera = $derived(cameraName(exif));
+	const taken = $derived(formatTaken(exif.takenAt));
 
 	const rows = $derived(
 		[
@@ -42,13 +33,13 @@
 			[
 				'Brennweite',
 				exif.focalLength &&
-					`${Math.round(exif.focalLength)} mm${exif.focalLength35 && Math.round(exif.focalLength35) !== Math.round(exif.focalLength) ? ` (KB ${exif.focalLength35} mm)` : ''}`
+					`${formatFocal(exif.focalLength)}${exif.focalLength35 && Math.round(exif.focalLength35) !== Math.round(exif.focalLength) ? ` (KB ${exif.focalLength35} mm)` : ''}`
 			],
-			['Blende', exif.aperture && `ƒ/${exif.aperture}`],
-			['Belichtung', exif.exposureTime && exposure(exif.exposureTime)],
+			['Blende', exif.aperture && formatAperture(exif.aperture)],
+			['Belichtung', exif.exposureTime && formatExposure(exif.exposureTime)],
 			['ISO', exif.iso],
 			['Aufgenommen', taken],
-			['Auflösung', `${width} × ${height} px · ${((width * height) / 1e6).toFixed(1)} MP`],
+			['Auflösung', `${width} × ${height} px · ${megapixels(width, height)}`],
 			['Original', original && `${original.type} · ${(original.sizeBytes / 1e6).toFixed(1)} MB`]
 		].filter((row): row is [string, string | number] => !!row[1])
 	);
