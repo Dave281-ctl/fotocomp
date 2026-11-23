@@ -1,5 +1,5 @@
 import { and, asc, between, eq, gt, inArray, isNull } from 'drizzle-orm';
-import { addDays, autoFeedbackRound, gameDay, isPhotoPublic } from '../schedule.ts';
+import { autoFeedbackRound, feedbackRoundDays, isPhotoPublic } from '../schedule.ts';
 import { db } from './db.ts';
 import { decorate, photoColumns } from './gallery.ts';
 import {
@@ -70,11 +70,8 @@ export async function deleteFeedback(id: number, viewer: User) {
 
 // -------------------------------------------------------------- Feedback-Runden
 
-/** Eine Runde behandelt die Fotos der sieben Tage vor ihrem Start. */
-const roundDays = (round: FeedbackRound) => {
-	const to = gameDay(round.startsAt);
-	return { from: addDays(to, -6), to };
-};
+/** Eine Runde behandelt die Fotos der vergangenen sieben Tage vor ihrem Start. */
+const roundDays = (round: FeedbackRound) => feedbackRoundDays(round.startsAt);
 
 const inRoundScope = (round: FeedbackRound, day: string) => {
 	const { from, to } = roundDays(round);
@@ -205,7 +202,7 @@ async function roundParticipants(round: FeedbackRound) {
 /** Fotos der anderen Teilnehmenden, inkl. ob der Betrachter schon Feedback gegeben hat. */
 export async function getRoundPhotos(round: FeedbackRound, viewerId: number, now: Date) {
 	const participants = (await roundParticipants(round)).filter((id) => id !== viewerId);
-	if (participants.length === 0) return [];
+	if (participants.length === 0) return { others: 0, photos: [] };
 	const { from, to } = roundDays(round);
 	const rows = await db
 		.select(photoColumns)
@@ -235,7 +232,8 @@ export async function getRoundPhotos(round: FeedbackRound, viewerId: number, now
 		: [];
 	const givenIds = new Set(given.map((g) => g.photoId));
 	const decorated = await decorate(visible, viewerId, now);
-	return decorated
+	const result = decorated
 		.map((p) => ({ ...p, feedbackGiven: givenIds.has(p.id) }))
 		.sort((a, b) => b.day.localeCompare(a.day));
+	return { others: participants.length, photos: result };
 }

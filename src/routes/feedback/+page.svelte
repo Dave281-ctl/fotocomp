@@ -21,7 +21,7 @@
 		<h1>Gemeinsam besser werden</h1>
 		<p class="muted lead">
 			In einer Feedback-Runde geben sich alle Teilnehmenden gegenseitig freundschaftliches,
-			konstruktives Feedback zu den Fotos der letzten Woche.
+			konstruktives Feedback zu den Fotos der vergangenen sieben Tage.
 		</p>
 	</div>
 
@@ -34,6 +34,9 @@
 			{:else}
 				Beginnt am {when(data.round.startsAt)}.
 			{/if}
+			<br /><span class="muted">
+				Fotos vom {formatShortDay(data.days.from)} bis {formatShortDay(data.days.to)}
+			</span>
 		</p>
 
 		<form method="POST" action="?/participate" class="row" use:enhance>
@@ -76,7 +79,11 @@
 							</span>
 						</a>
 					{:else}
-						<p class="muted">Noch keine Fotos von anderen Teilnehmenden.</p>
+						<p class="muted">
+							{data.others
+								? 'Die anderen Teilnehmenden haben in diesen sieben Tagen keine Fotos hochgeladen.'
+								: 'Noch macht niemand sonst mit. Sobald sich andere anmelden, erscheinen ihre Fotos hier.'}
+						</p>
 					{/each}
 				</div>
 			</section>

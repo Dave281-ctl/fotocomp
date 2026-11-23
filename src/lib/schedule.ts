@@ -211,6 +211,16 @@ export function lastWeeklyVoteDay(theme: ThemeSchedule, now: Date): Day | null {
 	return null;
 }
 
+/**
+ * Die Tage, die eine Feedback-Runde behandelt: die letzten sieben Tage, deren
+ * Fotos beim Start der Runde schon sichtbar sind (ab 20:00 des jeweiligen Tages).
+ */
+export function feedbackRoundDays(startsAt: Date): { from: Day; to: Day } {
+	const { date, hour } = zurichParts(startsAt);
+	const to = hour >= VOTING_START_HOUR ? date : addDays(date, -1);
+	return { from: addDays(to, -6), to };
+}
+
 interface FeedbackSchedule {
 	feedbackDay: number | null;
 	feedbackTime: string | null;

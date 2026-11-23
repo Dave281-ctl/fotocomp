@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	addDays,
 	autoFeedbackRound,
+	feedbackRoundDays,
 	at,
 	gameDay,
 	isRevealed,
@@ -168,5 +169,24 @@ describe('autoFeedbackRound', () => {
 	});
 	it('ohne Rhythmus keine Runde', () => {
 		expect(autoFeedbackRound({ ...fb, feedbackDay: null }, z('2026-11-24', 10))).toBeNull();
+	});
+});
+
+describe('feedbackRoundDays', () => {
+	it('nimmt die sieben Tage vor dem Start, wenn die Runde tagsüber beginnt', () => {
+		// Montag 09:00: Montagsfotos sind noch verborgen
+		expect(feedbackRoundDays(z('2026-11-23', 9))).toEqual({ from: '2026-11-16', to: '2026-11-22' });
+	});
+	it('zählt den Starttag mit, wenn die Runde ab 20:00 beginnt', () => {
+		expect(feedbackRoundDays(z('2026-11-23', 20))).toEqual({
+			from: '2026-11-17',
+			to: '2026-11-23'
+		});
+	});
+	it('gilt auch über den Monatswechsel', () => {
+		expect(feedbackRoundDays(z('2026-12-02', 19))).toEqual({
+			from: '2026-11-25',
+			to: '2026-12-01'
+		});
 	});
 });

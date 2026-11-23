@@ -5,6 +5,7 @@ import {
 	getRoundPhotos,
 	setParticipation
 } from '#lib/server/feedback.ts';
+import { feedbackRoundDays } from '#lib/schedule.ts';
 import { now } from '#lib/server/time.ts';
 import { selectTheme } from '#lib/server/current-theme.ts';
 import { getMembership } from '#lib/server/themes.ts';
@@ -26,6 +27,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	const active = round.startsAt <= t;
 	const participating = await getParticipation(round, user.id);
+	const { others, photos } =
+		active && participating ? await getRoundPhotos(round, user.id, t) : { others: 0, photos: [] };
 	return {
 		tabs,
 		theme: membership.theme,
@@ -33,7 +36,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		active,
 		participating,
 		always: membership.member.feedbackAlways,
-		photos: active && participating ? await getRoundPhotos(round, user.id, t) : []
+		days: feedbackRoundDays(round.startsAt),
+		others,
+		photos
 	};
 };
 
