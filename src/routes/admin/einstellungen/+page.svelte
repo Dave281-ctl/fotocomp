@@ -122,10 +122,15 @@
 		</div>
 
 		{#if !u.configured}
-			<p class="notice">
-				Die Update-Steuerung ist noch nicht eingerichtet: In der Datei <code>.env</code> auf dem
-				Server fehlt <code>UPDATE_TOKEN</code>. Die Anleitung steht im README unter «Updates».
-			</p>
+			<div class="notice stack" style="--gap: 6px">
+				<strong>
+					{u.setup === 'missing-token'
+						? 'Update-Steuerung noch nicht eingerichtet'
+						: 'Update-Steuerung funktioniert nicht'}
+				</strong>
+				<span>{data.setupText}</span>
+				<span class="muted small">Anleitung: README → «Updates» und «Fehlerbehebung».</span>
+			</div>
 		{/if}
 
 		<form

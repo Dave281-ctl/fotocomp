@@ -119,8 +119,12 @@ Postgres übernimmt `DB_USERNAME`, `DB_PASSWORD` und `DB_DATABASE_NAME` nur beim
 **Grosse Fotos (z.B. RAW) lassen sich nicht hochladen, die App meldet «zu gross für den Server».**
 Dann begrenzt der Reverse Proxy die Grösse von Uploads. Die App selbst nimmt bis 200 MB an. Die Grenze der App lässt sich mit `MAX_UPLOAD_MB` in der `.env` ändern; für mehr als 200 MB zusätzlich `BODY_SIZE_LIMIT` (z.B. `310M`) setzen.
 
-**Unter Einstellungen → Updates steht «Update-Steuerung nicht eingerichtet» oder «Watchtower ist nicht erreichbar».**
-`UPDATE_TOKEN` fehlt in der `.env`, oder die `compose.yaml` stammt noch von vor v0.4.0. Beides wie im Abschnitt «Installation» ergänzen und das Projekt neu erstellen. Startet Watchtower nicht (im Log steht, dass ein Token nötig ist), fehlt ebenfalls `UPDATE_TOKEN`.
+**Unter Einstellungen → Updates steht «Update-Steuerung noch nicht eingerichtet» oder «… funktioniert nicht».**
+Die App prüft die Einrichtung bei jedem Aufruf der Seite und schreibt das Ergebnis auch kurz nach dem Start ins Protokoll des App-Containers (Zeile beginnt mit «Update-Steuerung»). Der Hinweis nennt die Ursache:
+
+- **UPDATE_TOKEN fehlt im App-Container**: Container Manager → Container `…-app-1` → Details → Umgebung zeigt, ob `UPDATE_TOKEN` ankommt. Wenn nicht: In der `.env` muss `UPDATE_TOKEN=…` auf einer **eigenen Zeile** stehen (endete die Datei ohne Zeilenumbruch, hängt die neue Zeile sonst an der vorherigen), ohne Leerzeichen um das `=` und nur aus Buchstaben und Ziffern. Danach Projekt stoppen und **erstellen**; ein Neustart des Containers übernimmt die `.env` nicht.
+- **Watchtower nicht erreichbar**: Der Container `…-watchtower-1` läuft nicht oder stammt noch aus der alten `compose.yaml`. Im Protokoll von Watchtower sollte «HTTP API enabled and periodic updates disabled» stehen.
+- **Watchtower lehnt den Token ab**: App und Watchtower haben unterschiedliche Werte, meist weil nur ein Container neu erstellt wurde. Das ganze Projekt neu erstellen.
 
 **Login-Mails kommen nicht an.**
 Die App zeigt dann «Die Mail konnte nicht verschickt werden». Gleich nach dem Start schreibt sie ins Log, ob der Mailserver erreichbar ist (`Mailserver … erreichbar` oder `… nicht nutzbar` mit Grund, z.B. `EAUTH` für falsche Zugangsdaten oder `ETIMEDOUT` für einen falschen Host oder Port). Häufig passen Port und Verschlüsselung nicht zusammen: Port 465 nutzt TLS, Port 587 STARTTLS. Ein `SMTP_SECURE` wie in älteren Vorlagen ist nicht mehr nötig und sollte aus der `.env` entfernt werden.

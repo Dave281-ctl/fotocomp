@@ -1,14 +1,14 @@
 import { fail } from '@sveltejs/kit';
 import { UserError } from '#lib/server/errors.ts';
 import { getSettings, setSetting } from '#lib/server/settings.ts';
-import { triggerUpdate, updateStatus } from '#lib/server/updater.ts';
+import { describeSetup, triggerUpdate, updateStatus } from '#lib/server/updater.ts';
 import { UPDATE_POLICIES, type UpdatePolicy } from '#lib/server/version.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => ({
-	settings: await getSettings(),
-	update: await updateStatus()
-});
+export const load: PageServerLoad = async () => {
+	const update = await updateStatus();
+	return { settings: await getSettings(), update, setupText: describeSetup(update.setup) };
+};
 
 export const actions: Actions = {
 	general: async ({ request }) => {
