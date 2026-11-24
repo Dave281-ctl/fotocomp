@@ -11,8 +11,7 @@ export const load: PageServerLoad = ({ locals }) => {
 			name: u.name,
 			email: u.email,
 			feedbackDefault: u.feedbackDefault,
-			showGps: u.showGps,
-			emailNotifications: u.emailNotifications
+			showGps: u.showGps
 		}
 	};
 };
@@ -29,8 +28,7 @@ export const actions: Actions = {
 			.set({
 				name,
 				feedbackDefault: form.get('feedbackDefault') === 'on',
-				showGps: form.get('showGps') === 'on',
-				emailNotifications: form.get('emailNotifications') === 'on'
+				showGps: form.get('showGps') === 'on'
 			})
 			.where(eq(users.id, locals.user!.id));
 		return { saved: true };

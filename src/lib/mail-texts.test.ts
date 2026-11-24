@@ -4,7 +4,9 @@ import {
 	excerpt,
 	mailSubject,
 	motivation,
+	notifyKind,
 	pickHighlight,
+	pushText,
 	uploadStreak
 } from './mail-texts.ts';
 
@@ -104,5 +106,34 @@ describe('Hilfen', () => {
 				{ kind: 'feedback', theme: 'C' }
 			])
 		).toBe('Neues aus 3 Themen');
+	});
+});
+
+describe('Push', () => {
+	it('fasst mehrere Ereignisse in einer Mitteilung zusammen', () => {
+		const push = pushText([
+			{ kind: 'result', theme: 'Holz', day: '2026-11-22' },
+			{ kind: 'upload', themes: ['Holz'], until: '20:00' }
+		]);
+		expect(push.title).toBe('Holz: Das Resultat ist da');
+		expect(push.body).toBe(
+			'«Holz»: Das Resultat ist da – wer hat gewonnen?\nDein Foto für «Holz» kannst du bis 20:00 Uhr hochladen.'
+		);
+	});
+	it('neues Feedback nennt den Namen', () => {
+		const push = pushText([
+			{ kind: 'feedbackNew', theme: 'Holz', author: 'Sofia', excerpt: 'Schönes Licht!' }
+		]);
+		expect(push).toEqual({ title: 'Sofia hat dir Feedback gegeben', body: '«Schönes Licht!»' });
+		const mixed = pushText([
+			{ kind: 'voting', theme: 'Holz', photos: 2 },
+			{ kind: 'feedbackNew', theme: 'Holz', author: 'Sofia', excerpt: 'Schönes Licht!' }
+		]);
+		expect(mixed.body).toBe('«Holz»: 2 Fotos warten auf deine Sterne.\nSofia: «Schönes Licht!»');
+	});
+	it('ordnet Ereignisse den Einstellungen zu', () => {
+		expect(notifyKind({ kind: 'weeklyResult', theme: 'Holz' })).toBe('result');
+		expect(notifyKind({ kind: 'feedback', theme: 'Holz' })).toBe('feedbackRound');
+		expect(notifyKind({ kind: 'voting', theme: 'Holz', photos: 3 })).toBe('voting');
 	});
 });

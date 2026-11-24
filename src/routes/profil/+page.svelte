@@ -1,11 +1,26 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ChevronRight, CircleHelp, LogOut, SunMoon, UserPlus } from '@lucide/svelte';
+	import { onMount } from 'svelte';
+	import {
+		Bell,
+		ChevronRight,
+		CircleHelp,
+		LogOut,
+		Smartphone,
+		SunMoon,
+		UserPlus
+	} from '@lucide/svelte';
+	import InstallGuide from '#lib/components/InstallGuide.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import { isStandalone, platform } from '#lib/push-client.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const p = $derived(data.profile);
+
+	// Auf dem Handy im Browser: Hinweis, Fotocomp als App zu installieren
+	let showInstall = $state(false);
+	onMount(() => (showInstall = platform() !== 'other' && !isStandalone()));
 </script>
 
 <svelte:head><title>Profil · Fotocomp</title></svelte:head>
@@ -16,6 +31,20 @@
 		<h1>{p.name}</h1>
 		<p class="muted">{p.email}</p>
 	</div>
+
+	{#if showInstall}
+		<section class="card stack install" style="--gap: 14px">
+			<div class="row" style="--gap: 10px">
+				<Smartphone size={18} />
+				<strong>Fotocomp als App installieren</strong>
+			</div>
+			<p class="muted">
+				Mit Fotocomp auf dem Home-Bildschirm startest du schneller, siehst die Fotos ohne
+				Browserleiste und bekommst Push-Mitteilungen.
+			</p>
+			<InstallGuide />
+		</section>
+	{/if}
 
 	<form
 		method="POST"
@@ -38,10 +67,6 @@
 				<input type="checkbox" name="showGps" checked={p.showGps} />
 				Aufnahmeort (GPS) meiner Fotos anderen zeigen
 			</label>
-			<label class="check">
-				<input type="checkbox" name="emailNotifications" checked={p.emailNotifications} />
-				Erinnerungen per Mail (Bewertung, Resultat, Wochenfoto, Feedback-Runde)
-			</label>
 		</div>
 		{#if form?.error}<p class="error">{form.error}</p>{/if}
 		<div class="row">
@@ -54,6 +79,11 @@
 
 	<!-- Einstellungen als Liste: jede Zeile ist als Ganzes klickbar -->
 	<div class="list">
+		<a class="item" href="/profil/mitteilungen">
+			<Bell size={18} />
+			<span>Mitteilungen</span>
+			<ChevronRight size={18} class="chevron" />
+		</a>
 		<a class="item" href="/profil/einladen">
 			<UserPlus size={18} />
 			<span>Freunde einladen</span>
@@ -80,6 +110,10 @@
 </div>
 
 <style>
+	.install p {
+		margin: 0;
+	}
+
 	.list {
 		border-radius: var(--radius);
 		background: var(--surface);

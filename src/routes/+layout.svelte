@@ -3,6 +3,7 @@
 	import '../app.css';
 	import Nav from '#lib/components/Nav.svelte';
 	import PullToRefresh from '#lib/components/PullToRefresh.svelte';
+	import PushPrompt from '#lib/components/PushPrompt.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -15,6 +16,7 @@
 {#if data.user}
 	<Nav user={data.user} theme={data.theme} />
 	<PullToRefresh />
+	{#if data.pushKey}<PushPrompt pushKey={data.pushKey} />{/if}
 {/if}
 
 <main class:with-nav={data.user}>

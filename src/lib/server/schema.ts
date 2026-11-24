@@ -13,6 +13,7 @@ import {
 	unique,
 	uniqueIndex
 } from 'drizzle-orm/pg-core';
+import type { NotifyPrefs } from '../notify.ts';
 import type { PhotoExif } from '../types.ts';
 
 export type { PhotoExif };
@@ -35,7 +36,10 @@ export const users = pgTable('users', {
 		.default('dark'),
 	feedbackDefault: boolean('feedback_default').notNull().default(true),
 	showGps: boolean('show_gps').notNull().default(true),
+	/** Standard für Mails, solange keine eigenen Mitteilungs-Einstellungen gespeichert sind. */
 	emailNotifications: boolean('email_notifications').notNull().default(true),
+	/** Mitteilungen pro Art und Kanal (Push/Mail); leer = Standard (siehe notify.ts). */
+	notify: jsonb('notify').$type<Partial<NotifyPrefs>>(),
 	/** Gesetzt, sobald die Einführung abgeschlossen ist. */
 	onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
 	createdAt: createdAt()
@@ -237,6 +241,20 @@ export const settings = pgTable('settings', {
 export const notificationsSent = pgTable('notifications_sent', {
 	key: text('key').primaryKey(),
 	sentAt: createdAt()
+});
+
+/** Geräte, die Push-Mitteilungen erlaubt haben (Web Push). */
+export const pushSubscriptions = pgTable('push_subscriptions', {
+	id: serial('id').primaryKey(),
+	userId: integer('user_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }),
+	endpoint: text('endpoint').notNull().unique(),
+	p256dh: text('p256dh').notNull(),
+	auth: text('auth').notNull(),
+	/** z.B. «iPhone» oder «Android», nur zur Anzeige */
+	device: text('device'),
+	createdAt: createdAt()
 });
 
 export type User = typeof users.$inferSelect;
