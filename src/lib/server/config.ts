@@ -24,6 +24,13 @@ export const config = {
 	get maxUploadMb() {
 		return Number(env('MAX_UPLOAD_MB', '200')) || 200;
 	},
+	/** Gemeinsamer Schlüssel mit Watchtower; ohne ihn kann die App keine Updates auslösen. */
+	get updateToken() {
+		return process.env.UPDATE_TOKEN || undefined;
+	},
+	get watchtowerUrl() {
+		return env('WATCHTOWER_URL', 'http://watchtower:8080');
+	},
 	get dataDir() {
 		return env('DATA_DIR', './data');
 	},

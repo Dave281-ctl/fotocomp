@@ -1,4 +1,6 @@
 import { redirect } from '@sveltejs/kit';
+import { config } from '#lib/server/config.ts';
+import { REPO_URL } from '#lib/server/version.ts';
 import type { LayoutServerLoad } from './$types';
 
 /** Seiten, die auch vor Abschluss der Einführung erreichbar sind. */
@@ -12,6 +14,8 @@ export const load: LayoutServerLoad = ({ locals, url }) => {
 	}
 	return {
 		user: user ? { id: user.id, name: user.name, role: user.role } : null,
-		theme: locals.theme
+		theme: locals.theme,
+		version: config.version,
+		repoUrl: REPO_URL
 	};
 };

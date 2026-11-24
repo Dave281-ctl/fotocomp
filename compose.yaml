@@ -26,6 +26,7 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       MAIL_FROM: ${MAIL_FROM}
+      UPDATE_TOKEN: ${UPDATE_TOKEN} # damit die App Updates bei Watchtower auslösen darf
     volumes:
       - /volume1/docker/fotocomp/photos:/data
     labels:
@@ -45,12 +46,14 @@ services:
       interval: 10s
       retries: 10
 
-  # Aktualisiert die App automatisch, sobald auf GitHub ein neues Release erscheint.
+  # Installiert Updates der App. Wann und welche, entscheidet die App selbst
+  # (Admin → Einstellungen → Updates); Watchtower führt nur auf ihren Auftrag aus.
   watchtower:
     image: nickfedor/watchtower:latest
     restart: unless-stopped
-    command: --label-enable --cleanup --interval 1800
+    command: --label-enable --cleanup --http-api-endpoints update
     environment:
       TZ: Europe/Zurich
+      WATCHTOWER_HTTP_API_TOKEN: ${UPDATE_TOKEN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

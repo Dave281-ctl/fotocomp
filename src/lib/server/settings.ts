@@ -1,13 +1,16 @@
 import { eq } from 'drizzle-orm';
 import { db } from './db.ts';
 import { settings } from './schema.ts';
+import type { UpdatePolicy } from './version.ts';
 
 /** Einstellungen, die der Admin ändern kann, mit ihren Standardwerten. */
 const defaults = {
 	/** 'open' = jeder darf sich registrieren, 'invite' = nur mit Einladung. */
 	registration: 'open' as 'open' | 'invite',
 	/** 'admins' = nur Admins erstellen Themen, 'all' = alle User. */
-	themeCreation: 'admins' as 'admins' | 'all'
+	themeCreation: 'admins' as 'admins' | 'all',
+	/** Welche Updates die App selbst installiert (siehe version.ts). */
+	updatePolicy: 'all' as UpdatePolicy
 };
 
 export type Settings = typeof defaults;

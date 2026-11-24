@@ -44,6 +44,7 @@ Voraussetzung: DSM 7.2 oder neuer mit dem Paket **Container Manager**.
    - **Datenbank:** `DB_PASSWORD` als langes Zufallspasswort, nur aus Buchstaben und Ziffern. Zeichen wie `$` oder `#` verfälschen das Passwort. `DB_USERNAME` und `DB_DATABASE_NAME` können so bleiben.
    - **Adresse:** `ORIGIN` und `APP_PORT` (Port auf dem NAS, Standard 3000).
    - **Mail:** den SMTP-Zugang deines Mail-Anbieters. Port 587 oder 465, die Verschlüsselung wird passend gewählt.
+   - **Updates:** `UPDATE_TOKEN` als langer Zufallstext, nur aus Buchstaben und Ziffern.
 3. **Projekt erstellen:** Container Manager → Projekt → Erstellen.
    - Pfad: `/volume1/docker/fotocomp`
    - Quelle: «compose.yaml erstellen» und den Inhalt von [`compose.yaml`](compose.yaml) unverändert einfügen. Die Werte kommen alle aus der `.env`.
@@ -58,18 +59,43 @@ Nach einer Änderung an der `.env` das Projekt im Container Manager stoppen und 
 
 Im Admin-Bereich kannst du die Registrierung danach auf «nur mit Einladung» stellen.
 
-### Automatische Updates
+### Updates
 
-1. Auf GitHub ein neues **Release** erstellen (z.B. `v0.2.0`).
-2. GitHub Actions baut das Docker-Image (amd64 und arm64) und lädt es nach `ghcr.io/dave281-ctl/fotocomp`.
-3. **Watchtower** auf dem NAS prüft alle 30 Minuten, ob es ein neues Image gibt, und startet die App neu. Datenbank-Migrationen laufen beim Start automatisch.
-4. Ob das Update angekommen ist, zeigt die Version unten in der Admin-Übersicht.
+1. Auf GitHub erscheint ein neues **Release** (z.B. `v0.4.0`). GitHub Actions baut daraus das Docker-Image (amd64 und arm64) unter `ghcr.io/dave281-ctl/fotocomp`.
+2. Die App fragt stündlich bei GitHub nach der neuesten Version und entscheidet nach der Einstellung unter **Admin → Einstellungen → Updates**:
+   - **Automatisch – alle Versionen** (Standard)
+   - **Automatisch – nur innerhalb v0.x.x** bzw. **nur innerhalb v0.3.x**: Grössere Sprünge wartet die App ab. Die Bereiche richten sich nach der installierten Version.
+   - **Manuell**: Die App zeigt nur an, dass es eine neue Version gibt.
+3. Ist ein Update fällig, beauftragt die App **Watchtower**. Es lädt das neue Image und startet die App neu. Mit dem Knopf **«Jetzt aktualisieren»** geht das auch sofort, unabhängig von der Einstellung.
+4. Beim Start werden Datenbank-Änderungen (Migrationen) ausgeführt, vorher legt die App automatisch eine Sicherung an (siehe unten).
+
+Die installierte Version steht dezent unten auf jeder Seite.
+
+**Versionsnummern:** Eine Erhöhung der mittleren Zahl (z.B. `0.3.x` → `0.4.0`) kündigt an, dass ein manueller Schritt nötig sein kann, etwa eine Änderung an `compose.yaml` oder `.env`. Was zu tun ist, steht dann in der Release-Notiz. Wer «nur innerhalb v0.3.x» wählt, bekommt solche Versionen nie unbemerkt.
+
+**Lange nicht aktualisiert?** Kein Problem: Alle Datenbank-Änderungen bauen aufeinander auf und werden beim Start der Reihe nach ausgeführt. Ein Sprung von `v0.3.5` direkt auf die neueste Version funktioniert. Lies vorher die Release-Notizen der übersprungenen Versionen mit «⚠ Manueller Schritt».
 
 > Nach dem allerersten Release muss das Paket einmalig öffentlich gemacht werden, damit das NAS es ohne Anmeldung laden kann: GitHub → Profil → Packages → `fotocomp` → Package settings → Change visibility → Public.
 
 ### Datensicherung
 
-Alles Wichtige liegt in `/volume1/docker/fotocomp`. Am einfachsten sicherst du den Ordner mit **Hyper Backup**. Für eine konsistente Datenbanksicherung legst du zusätzlich im Aufgabenplaner eine tägliche Aufgabe an:
+Alles Wichtige liegt in `/volume1/docker/fotocomp`. Am einfachsten sicherst du den Ordner mit **Hyper Backup**.
+
+**Automatisch vor jedem Update mit Datenbank-Änderungen** legt die App eine Sicherung an, unter `docker/fotocomp/photos/backups/` (z.B. `fotocomp-2026-11-24-03-00-vor-v0.4.0.sql.gz`). Die fünf neuesten bleiben erhalten. Kann die Sicherung nicht erstellt werden (z.B. weil der Speicher voll ist), wird aus Sicherheit nicht migriert, und die App startet nicht. Das Log nennt dann den Grund.
+
+Eine Sicherung **zurückspielen**, etwa nach einem missglückten Update:
+
+1. Container Manager → Projekt `fotocomp` → Container `…-app-1` stoppen.
+2. In `compose.yaml` bei `image:` die vorherige Version eintragen, z.B. `ghcr.io/dave281-ctl/fotocomp:0.3.5`, und die Update-Einstellung auf «Manuell» stellen, sobald die App wieder läuft.
+3. Container `…-db-1` → Terminal → Erstellen → `bash`, dann (mit deinen Werten für Benutzer und Datenbank):
+   ```bash
+   dropdb -U fotocomp fotocomp && createdb -U fotocomp fotocomp
+   zcat /pfad/zur/sicherung.sql.gz | psql -U fotocomp -d fotocomp
+   ```
+   Der `photos`-Ordner ist im db-Container nicht eingebunden. Am einfachsten kopierst du die Sicherung vorher mit der File Station nach `docker/fotocomp/db/` und verwendest den Pfad `/var/lib/postgresql/data/<datei>`.
+4. Das Projekt wieder starten.
+
+Für eine zusätzliche tägliche Datenbanksicherung legst du im Aufgabenplaner eine Aufgabe an:
 
 ```bash
 docker exec fotocomp-db-1 pg_dump -U fotocomp fotocomp > /volume1/docker/fotocomp/backup.sql
@@ -91,6 +117,9 @@ Postgres übernimmt `DB_USERNAME`, `DB_PASSWORD` und `DB_DATABASE_NAME` nur beim
 
 **Grosse Fotos (z.B. RAW) lassen sich nicht hochladen, die App meldet «zu gross für den Server».**
 Dann begrenzt der Reverse Proxy die Grösse von Uploads. Die App selbst nimmt bis 200 MB an. Die Grenze der App lässt sich mit `MAX_UPLOAD_MB` in der `.env` ändern; für mehr als 200 MB zusätzlich `BODY_SIZE_LIMIT` (z.B. `310M`) setzen.
+
+**Unter Einstellungen → Updates steht «Update-Steuerung nicht eingerichtet» oder «Watchtower ist nicht erreichbar».**
+`UPDATE_TOKEN` fehlt in der `.env`, oder die `compose.yaml` stammt noch von vor v0.4.0. Beides wie im Abschnitt «Installation» ergänzen und das Projekt neu erstellen. Startet Watchtower nicht (im Log steht, dass ein Token nötig ist), fehlt ebenfalls `UPDATE_TOKEN`.
 
 **Login-Mails kommen nicht an.**
 Die App zeigt dann «Die Mail konnte nicht verschickt werden». Gleich nach dem Start schreibt sie ins Log, ob der Mailserver erreichbar ist (`Mailserver … erreichbar` oder `… nicht nutzbar` mit Grund, z.B. `EAUTH` für falsche Zugangsdaten oder `ETIMEDOUT` für einen falschen Host oder Port). Häufig passen Port und Verschlüsselung nicht zusammen: Port 465 nutzt TLS, Port 587 STARTTLS. Ein `SMTP_SECURE` wie in älteren Vorlagen ist nicht mehr nötig und sollte aus der `.env` entfernt werden.

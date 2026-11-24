@@ -6,7 +6,8 @@
 import { config } from './config.ts';
 
 export const REPO = 'Dave281-ctl/fotocomp';
-export const RELEASES_URL = `https://github.com/${REPO}/releases`;
+export const REPO_URL = `https://github.com/${REPO}`;
+export const RELEASES_URL = `${REPO_URL}/releases`;
 
 const CACHE_MS = 60 * 60 * 1000;
 let cache: { at: number; latest: string | null } | undefined;
@@ -40,6 +41,33 @@ export function isNewer(a: string, b: string) {
 	if (!x || !y) return false;
 	for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
 	return false;
+}
+
+/**
+ * Welche Updates installiert die App selbst?
+ * - all:    alle neuen Versionen
+ * - major:  nur innerhalb der Hauptversion (bei v0.3.5 also v0.x.x)
+ * - minor:  nur innerhalb der Nebenversion (bei v0.3.5 also v0.3.x)
+ * - manual: keine, nur über den Knopf im Adminbereich
+ */
+export type UpdatePolicy = 'all' | 'major' | 'minor' | 'manual';
+export const UPDATE_POLICIES: UpdatePolicy[] = ['all', 'major', 'minor', 'manual'];
+
+/** Darf `latest` bei dieser Einstellung automatisch installiert werden? */
+export function allowedByPolicy(latest: string, installed: string, policy: UpdatePolicy) {
+	if (policy === 'manual' || !isNewer(latest, installed)) return false;
+	const [a, b] = [parse(latest)!, parse(installed)!];
+	if (policy === 'major') return a[0] === b[0];
+	if (policy === 'minor') return a[0] === b[0] && a[1] === b[1];
+	return true;
+}
+
+/** «v0.3.5» → { major: 'v0.x.x', minor: 'v0.3.x' } für die Beschriftung der Einstellung. */
+export function policyRanges(installed: string) {
+	const v = parse(installed);
+	return v
+		? { major: `v${v[0]}.x.x`, minor: `v${v[0]}.${v[1]}.x` }
+		: { major: 'gleiche Hauptversion', minor: 'gleiche Nebenversion' };
 }
 
 export async function versionInfo() {

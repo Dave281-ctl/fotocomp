@@ -7,16 +7,19 @@ import { closeExifTool } from '#lib/server/convert.ts';
 import { closeDb } from '#lib/server/db.ts';
 import { startJobs, stopJobs } from '#lib/server/jobs.ts';
 import { checkMailServer } from '#lib/server/mail.ts';
+import { startAutoUpdate, stopAutoUpdate } from '#lib/server/updater.ts';
 
 /** Startet die Erinnerungsmails im Hintergrund. */
 export const init: ServerInit = () => {
 	if (building) return;
 	console.log(`Fotocomp ${config.version} gestartet.`);
 	startJobs();
+	startAutoUpdate();
 	void checkMailServer();
 	// Sauber herunterfahren (z.B. bei einem Update durch Watchtower)
 	process.once('sveltekit:shutdown', async () => {
 		stopJobs();
+		stopAutoUpdate();
 		await Promise.all([closeDb(), closeExifTool()]);
 	});
 };

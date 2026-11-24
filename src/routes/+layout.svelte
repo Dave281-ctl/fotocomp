@@ -19,9 +19,30 @@
 
 <main class:with-nav={data.user}>
 	{@render children()}
+	<!-- Dezent: die Version, ein Klick führt zum Projekt auf GitHub -->
+	<footer class="version">
+		<a href={data.repoUrl} target="_blank" rel="noopener">Fotocomp {data.version}</a>
+	</footer>
 </main>
 
 <style>
+	.version {
+		padding: 48px 0 20px;
+		text-align: center;
+		font-size: 11px;
+		letter-spacing: 0.04em;
+	}
+
+	.version a {
+		color: var(--muted);
+		opacity: 0.6;
+		text-decoration: none;
+	}
+
+	.version a:hover {
+		opacity: 1;
+	}
+
 	@media (max-width: 720px) {
 		main.with-nav {
 			padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
