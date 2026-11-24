@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { House, Images, Layers, Shield, UserRound } from '@lucide/svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
+	import logoMark from './logo-mark.svg?raw';
 
 	let { user, theme }: { user: { name: string; role: string }; theme: 'dark' | 'light' } = $props();
 
@@ -18,7 +19,11 @@
 </script>
 
 <header>
-	<a class="brand" href="/">Fotocomp</a>
+	<a class="brand" href="/">
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes, statisches Logo -->
+		<span class="mark" aria-hidden="true">{@html logoMark}</span>
+		Fotocomp
+	</a>
 	<nav>
 		{#each items as item (item.href)}
 			<a href={item.href} class:active={isActive(item.href)}>
@@ -51,6 +56,21 @@
 		text-transform: uppercase;
 		font-size: 13px;
 		margin-right: auto;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.mark {
+		display: grid;
+		width: 22px;
+		height: 22px;
+		color: var(--text);
+	}
+
+	.mark :global(svg) {
+		width: 100%;
+		height: 100%;
 	}
 
 	nav {
