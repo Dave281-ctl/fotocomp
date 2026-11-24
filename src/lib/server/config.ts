@@ -56,3 +56,20 @@ export const config = {
 		}
 	}
 };
+
+/** Einstellungen aus der .env, in denen noch ein Platzhalter der Vorlage steht. */
+export function placeholderSettings() {
+	const names = [
+		'ORIGIN',
+		'DB_PASSWORD',
+		'SMTP_HOST',
+		'SMTP_USER',
+		'SMTP_PASS',
+		'MAIL_FROM',
+		'UPDATE_TOKEN'
+	];
+	return names.filter((name) => {
+		const value = process.env[name] ?? '';
+		return value.startsWith('HIER_') || value.includes('example.com');
+	});
+}

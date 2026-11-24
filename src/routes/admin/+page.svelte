@@ -17,6 +17,16 @@
 	{/each}
 </div>
 
+{#if data.placeholders.length}
+	<div class="notice stack placeholders" style="--gap: 6px">
+		<strong>Die .env ist noch nicht fertig ausgefüllt</strong>
+		<span>
+			Noch mit Platzhalter der Vorlage: <code>{data.placeholders.join(', ')}</code>. Werte in der
+			<code>.env</code> auf dem NAS ersetzen und das Projekt neu erstellen.
+		</span>
+	</div>
+{/if}
+
 <!-- Hinweis nur, wenn ein Update wartet; alles Weitere unter Einstellungen → Updates -->
 {#if u.updateAvailable}
 	<a class="card update row" href="/admin/einstellungen#updates">
@@ -36,6 +46,10 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 		gap: 12px;
+	}
+
+	.placeholders {
+		margin-top: 24px;
 	}
 
 	.update {

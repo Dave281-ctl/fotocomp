@@ -41,11 +41,7 @@ Hat bis 20:00 Uhr im Thema niemand ein Foto hochgeladen, gibt es nichts zu bewer
 Voraussetzung: DSM 7.2 oder neuer mit dem Paket **Container Manager**.
 
 1. **Ordner anlegen** (File Station): `docker/fotocomp/photos` und `docker/fotocomp/db`.
-2. **Einstellungen anlegen:** Die Vorlage [`nas.env.example`](nas.env.example) als `docker/fotocomp/.env` speichern und die Werte anpassen:
-   - **Datenbank:** `DB_PASSWORD` als langes Zufallspasswort, nur aus Buchstaben und Ziffern. Zeichen wie `$` oder `#` verfälschen das Passwort. `DB_USERNAME` und `DB_DATABASE_NAME` können so bleiben.
-   - **Adresse:** `ORIGIN` und `APP_PORT` (Port auf dem NAS, Standard 3000).
-   - **Mail:** den SMTP-Zugang deines Mail-Anbieters. Port 587 oder 465, die Verschlüsselung wird passend gewählt.
-   - **Updates:** `UPDATE_TOKEN` als langer Zufallstext, nur aus Buchstaben und Ziffern.
+2. **Einstellungen anlegen:** Den Inhalt von [`nas.env.example`](nas.env.example) als `docker/fotocomp/.env` speichern. Die Vorlage ist zweigeteilt: Im Teil **«MUSS ANGEPASST WERDEN»** jeden Wert ersetzen, der mit `HIER_` beginnt oder `example.com` enthält (Webadresse, Datenbank-Passwort, Mailzugang, Update-Schlüssel). Der Teil **«KANN SO BLEIBEN»** passt meist. Passwörter und Schlüssel nur aus Buchstaben und Ziffern, denn Zeichen wie `$` oder `#` verfälschen sie. Vergisst du einen Platzhalter, meldet Fotocomp das beim Start im Protokoll und in der Admin-Übersicht.
 3. **Projekt erstellen:** Container Manager → Projekt → Erstellen.
    - Pfad: `/volume1/docker/fotocomp`
    - Quelle: «compose.yaml erstellen» und den Inhalt von [`compose.yaml`](compose.yaml) unverändert einfügen. Die Werte kommen alle aus der `.env`.

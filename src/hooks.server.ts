@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
 import { SESSION_COOKIE, setSessionCookie, validateSession } from '#lib/server/auth.ts';
-import { config } from '#lib/server/config.ts';
+import { config, placeholderSettings } from '#lib/server/config.ts';
 import { closeExifTool } from '#lib/server/convert.ts';
 import { closeDb } from '#lib/server/db.ts';
 import { startJobs, stopJobs } from '#lib/server/jobs.ts';
@@ -13,6 +13,10 @@ import { startAutoUpdate, stopAutoUpdate } from '#lib/server/updater.ts';
 export const init: ServerInit = () => {
 	if (building) return;
 	console.log(`Fotocomp ${config.version} gestartet.`);
+	const placeholders = placeholderSettings();
+	if (placeholders.length) {
+		console.warn(`In der .env stehen noch Platzhalter der Vorlage: ${placeholders.join(', ')}`);
+	}
 	startJobs();
 	startAutoUpdate();
 	void checkMailServer();

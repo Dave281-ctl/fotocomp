@@ -1,4 +1,5 @@
 import { count, sum } from 'drizzle-orm';
+import { placeholderSettings } from '#lib/server/config.ts';
 import { db } from '#lib/server/db.ts';
 import { updateStatus } from '#lib/server/updater.ts';
 import { feedback, photos, themes, users } from '#lib/server/schema.ts';
@@ -11,6 +12,7 @@ export const load: PageServerLoad = async () => {
 	const [f] = await db.select({ n: count() }).from(feedback);
 	return {
 		update: await updateStatus(),
+		placeholders: placeholderSettings(),
 		stats: [
 			{ label: 'Benutzer', value: u.n },
 			{ label: 'Fotos', value: p.n },
