@@ -9,7 +9,8 @@ RUN npm run build && npm prune --omit=dev
 # ---- Laufzeit ----------------------------------------------------------
 FROM node:22-alpine
 # perl: für ExifTool (Metadaten, RAW-Vorschau) · libraw-tools: RAW entwickeln
-RUN apk add --no-cache su-exec perl libraw-tools
+# postgresql17-client: pg_dump für die Sicherung vor Migrationen
+RUN apk add --no-cache su-exec perl libraw-tools postgresql17-client
 # Wird beim Release von GitHub Actions gesetzt (z.B. v0.2.0)
 ARG APP_VERSION=dev
 WORKDIR /app
