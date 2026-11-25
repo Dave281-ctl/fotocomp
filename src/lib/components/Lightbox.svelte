@@ -18,13 +18,21 @@
 		return metaCache.get(id)!;
 	}
 
-	/** Infos bleiben eingeblendet, auch beim nächsten Öffnen. */
-	let infoRemembered = false;
+	/** Infos sind standardmässig an; ausgeschaltet mit (i) bleiben sie es für die Sitzung. */
+	let infoOn = true;
+
+	type FullscreenDoc = Document & {
+		webkitFullscreenEnabled?: boolean;
+		webkitFullscreenElement?: Element | null;
+		webkitExitFullscreen?: () => void;
+	};
+	type FullscreenEl = HTMLElement & { webkitRequestFullscreen?: () => void };
 </script>
 
 <script lang="ts">
 	import { page } from '$app/state';
-	import { ChevronLeft, ChevronRight, Info, Maximize, X } from '@lucide/svelte';
+	import { onMount } from 'svelte';
+	import { ChevronLeft, ChevronRight, Info, Maximize, Minimize, X } from '@lucide/svelte';
 	import { cameraName, exposureParts, formatTaken, megapixels } from '../exif-format.ts';
 	import { photoSrc } from '../media.ts';
 	import type { FeedPhoto } from '../types.ts';
@@ -54,13 +62,13 @@
 	const SIDE_MIN = 200; // so breit muss der Rand neben dem Bild mindestens sein
 	const BELOW_MIN = 66; // so hoch muss der Rand unter dem Bild mindestens sein
 
-	let showInfo = $state(infoRemembered);
+	let showInfo = $state(infoOn);
 	let meta = $state<PhotoMeta | null>(null);
 	let viewW = $state(0);
 	let viewH = $state(0);
 
 	function toggleInfo() {
-		showInfo = infoRemembered = !showInfo;
+		showInfo = infoOn = !showInfo;
 	}
 
 	$effect(() => {
@@ -116,8 +124,30 @@
 		index = (index + step + photos.length) % photos.length;
 	};
 
+	// Vollbild: Das iPhone kann es nur für Videos – dort gibt es den Knopf nicht
+	// (die Ansicht füllt den Bildschirm ohnehin). iPad und ältere Safari: mit Präfix.
+	let canFullscreen = $state(false);
+	let isFullscreen = $state(false);
+	onMount(() => {
+		const doc = document as FullscreenDoc;
+		canFullscreen = !!(doc.fullscreenEnabled || doc.webkitFullscreenEnabled);
+		const update = () => (isFullscreen = !!(doc.fullscreenElement || doc.webkitFullscreenElement));
+		document.addEventListener('fullscreenchange', update);
+		document.addEventListener('webkitfullscreenchange', update);
+		return () => {
+			document.removeEventListener('fullscreenchange', update);
+			document.removeEventListener('webkitfullscreenchange', update);
+		};
+	});
+
+	function exitFullscreen() {
+		const doc = document as FullscreenDoc;
+		if (doc.fullscreenElement) void doc.exitFullscreen();
+		else if (doc.webkitFullscreenElement) doc.webkitExitFullscreen?.();
+	}
+
 	function close() {
-		if (document.fullscreenElement) document.exitFullscreen();
+		exitFullscreen();
 		index = null;
 	}
 
@@ -135,8 +165,10 @@
 	}
 
 	function toggleFullscreen() {
-		if (document.fullscreenElement) document.exitFullscreen();
-		else root?.requestFullscreen?.();
+		if (isFullscreen) return exitFullscreen();
+		const el = root as FullscreenEl | undefined;
+		if (el?.requestFullscreen) void el.requestFullscreen().catch(() => {});
+		else el?.webkitRequestFullscreen?.();
 	}
 
 	function onkeydown(e: KeyboardEvent) {
@@ -199,9 +231,15 @@
 				>
 					<Info size={20} />
 				</button>
-				<button onclick={toggleFullscreen} aria-label="Vollbild" title="Vollbild">
-					<Maximize size={20} />
-				</button>
+				{#if canFullscreen}
+					<button
+						onclick={toggleFullscreen}
+						aria-label={isFullscreen ? 'Vollbild beenden' : 'Vollbild'}
+						title={isFullscreen ? 'Vollbild beenden' : 'Vollbild'}
+					>
+						{#if isFullscreen}<Minimize size={20} />{:else}<Maximize size={20} />{/if}
+					</button>
+				{/if}
 				<button onclick={close} aria-label="Schliessen" title="Schliessen (Esc)">
 					<X size={22} />
 				</button>
