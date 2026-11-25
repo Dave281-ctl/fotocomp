@@ -22,7 +22,7 @@ import { getCurrentRound, getParticipation, getRoundPhotos } from './feedback.ts
 import { getDayPhotos } from './gallery.ts';
 import { findPhoto } from './photos.ts';
 import { feedback, photos, users, type Theme, type User } from './schema.ts';
-import { getPhase } from './themes.ts';
+import { getMemberships, getPhase } from './themes.ts';
 import { getMyPicks, getWeekPhotos, getWeeklyResult } from './weekly.ts';
 
 /** So lange bleiben Neuigkeiten auf «Heute». */
@@ -221,6 +221,16 @@ export async function themeNews(
 			when: formatWhen(item.at, t),
 			isNew: !seenAt || item.at > seenAt
 		}));
+}
+
+/** Offene Aufgaben über alle eigenen Themen (Zähler beim Menüpunkt «Heute»). */
+export async function openTaskCount(user: User, t: Date) {
+	const counts = await Promise.all(
+		(await getMemberships(user.id)).map(
+			async ({ theme }) => (await themeTasks(theme, user, t)).filter((task) => !task.done).length
+		)
+	);
+	return counts.reduce((a, b) => a + b, 0);
 }
 
 /** Gibt es im Thema etwas Offenes? (Punkt in den Reitern) */

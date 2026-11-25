@@ -1,6 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { unreadTotal } from '#lib/server/chat.ts';
 import { config } from '#lib/server/config.ts';
+import { openTaskCount } from '#lib/server/theme-status.ts';
+import { now } from '#lib/server/time.ts';
 import { vapidPublicKey } from '#lib/server/push.ts';
 import { REPO_URL } from '#lib/server/version.ts';
 import { getMemberships } from '#lib/server/themes.ts';
@@ -14,7 +16,9 @@ async function themesHref(userId: number) {
 /** Seiten, die auch vor Abschluss der Einführung erreichbar sind. */
 const BEFORE_ONBOARDING = ['/willkommen', '/abmelden'];
 
-export const load: LayoutServerLoad = async ({ locals, url }) => {
+export const load: LayoutServerLoad = async ({ locals, url, depends }) => {
+	// Nach dem Bewerten u.ä. lässt sich der Zähler gezielt neu laden: invalidate('app:todos')
+	depends('app:todos');
 	const user = locals.user;
 	// Neue Benutzer sehen zuerst die Einführung.
 	if (user && !user.onboardedAt && !BEFORE_ONBOARDING.some((p) => url.pathname.startsWith(p))) {
@@ -26,6 +30,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		version: config.version,
 		pushKey: user ? await vapidPublicKey() : null,
 		chatUnread: user ? await unreadTotal(user) : 0,
+		// Offene Aufgaben (Hochladen, Bewerten …) für den Zähler bei «Heute»
+		openTasks: user ? await openTaskCount(user, now()) : 0,
 		// Genau ein Thema: Der Menüpunkt «Themen» führt direkt dorthin
 		themesHref: user ? await themesHref(user.id) : '/themen',
 		repoUrl: REPO_URL

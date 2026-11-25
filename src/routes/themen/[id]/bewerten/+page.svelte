@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invalidate } from '$app/navigation';
 	import Lightbox from '#lib/components/Lightbox.svelte';
 	import PhotoFeed from '#lib/components/PhotoFeed.svelte';
 	import SubHeader from '#lib/components/SubHeader.svelte';
@@ -29,6 +30,9 @@
 		if (!res.ok) {
 			set(previous);
 			voteError = 'Die Bewertung konnte nicht gespeichert werden. Ist die Bewertungszeit vorbei?';
+		} else {
+			// Zähler «Heute» nachführen (die Sterne gehen nicht über ein Formular)
+			void invalidate('app:todos');
 		}
 	}
 </script>

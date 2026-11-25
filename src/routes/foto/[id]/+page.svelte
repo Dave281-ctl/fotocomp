@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidate } from '$app/navigation';
 	import { ChevronLeft, ChevronRight, Download, Maximize } from '@lucide/svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Lightbox from '#lib/components/Lightbox.svelte';
@@ -40,6 +41,7 @@
 			body: JSON.stringify({ photoId: photo.id, stars })
 		});
 		if (!res.ok) photo = { ...photo, myStars: previous };
+		else void invalidate('app:todos');
 	}
 </script>
 

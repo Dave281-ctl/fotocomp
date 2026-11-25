@@ -21,7 +21,12 @@
 </svelte:head>
 
 {#if data.user}
-	<Nav user={data.user} theme={data.theme} themesHref={data.themesHref} />
+	<Nav
+		user={data.user}
+		theme={data.theme}
+		themesHref={data.themesHref}
+		openTasks={data.openTasks}
+	/>
 	<PullToRefresh />
 	{#if data.pushKey}<PushPrompt pushKey={data.pushKey} />{/if}
 {/if}

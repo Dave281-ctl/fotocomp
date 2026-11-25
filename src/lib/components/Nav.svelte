@@ -8,12 +8,20 @@
 	let {
 		user,
 		theme,
-		themesHref = '/themen'
+		themesHref = '/themen',
+		openTasks = 0
 	}: {
 		user: { name: string; role: string };
 		theme: 'dark' | 'light';
 		themesHref?: string;
+		/** Offene Aufgaben (Zähler bei «Heute») */
+		openTasks?: number;
 	} = $props();
+
+	/** Zähler pro Menüpunkt: Heute = offene Aufgaben, Chat = ungelesene Nachrichten */
+	const badge = (href: string) => (href === '/' ? openTasks : href === '/chat' ? live.unread : 0);
+	const badgeLabel = (href: string, n: number) =>
+		href === '/' ? (n === 1 ? 'offene Aufgabe' : 'offene Aufgaben') : 'ungelesen';
 
 	const items = $derived([
 		{ href: '/', label: 'Heute', icon: House },
@@ -48,9 +56,12 @@
 			>
 				<span class="icon">
 					<item.icon size={20} strokeWidth={1.6} />
-					{#if item.href === '/chat' && live.unread}
-						<span class="count" aria-label="{live.unread} ungelesen">
-							{live.unread > 99 ? '99+' : live.unread}
+					{#if badge(item.href)}
+						<span
+							class="count"
+							aria-label="{badge(item.href)} {badgeLabel(item.href, badge(item.href))}"
+						>
+							{badge(item.href) > 99 ? '99+' : badge(item.href)}
 						</span>
 					{/if}
 				</span>
