@@ -81,9 +81,13 @@ export async function getThemeGallery(theme: Theme, viewerId: number, t: Date) {
 		...p,
 		badge: badges.get(p.id) ?? null
 	}));
-	const days = [...new Set(decorated.map((p) => p.day))].sort().reverse();
+	// Fotos auf dem Treppchen nicht nochmals unter «Alle Fotos» zeigen
+	const top = await highlight(theme, viewerId, t);
+	const onPodium = new Set(top?.photos.map((p) => p.id));
+	const rest = decorated.filter((p) => !onPodium.has(p.id));
+	const days = [...new Set(rest.map((p) => p.day))].sort().reverse();
 	return {
-		highlight: await highlight(theme, viewerId, t),
-		days: days.map((day) => ({ day, photos: decorated.filter((p) => p.day === day) }))
+		highlight: top,
+		days: days.map((day) => ({ day, photos: rest.filter((p) => p.day === day) }))
 	};
 }

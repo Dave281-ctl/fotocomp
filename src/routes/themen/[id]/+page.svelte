@@ -88,10 +88,10 @@
 
 	{#if data.gallery.days.length}
 		<section class="stack" style="--gap: 16px">
-			<h2>Alle Fotos</h2>
+			<h2>{data.gallery.highlight ? 'Weitere Fotos' : 'Alle Fotos'}</h2>
 			<ThemeGallery days={data.gallery.days} />
 		</section>
-	{:else if data.phase.kind !== 'upcoming'}
+	{:else if data.phase.kind !== 'upcoming' && !data.gallery.highlight}
 		<p class="muted">
 			Noch keine enthüllten Fotos. Die ersten erscheinen nach der ersten Bewertung.
 		</p>
