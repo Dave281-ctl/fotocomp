@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { House, Images, Layers, Shield, UserRound } from '@lucide/svelte';
+	import { House, Images, Layers, MessageCircle, Shield, UserRound } from '@lucide/svelte';
+	import { live } from '../chat-live.svelte.ts';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import logoMark from './logo-mark.svg?raw';
 
@@ -9,9 +10,13 @@
 	const items = $derived([
 		{ href: '/', label: 'Heute', icon: House },
 		{ href: '/themen', label: 'Themen', icon: Layers },
+		{ href: '/chat', label: 'Chat', icon: MessageCircle },
 		{ href: '/galerie', label: 'Galerie', icon: Images },
 		{ href: '/profil', label: 'Profil', icon: UserRound },
-		...(user.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: Shield }] : [])
+		// Auf dem Handy liegt «Admin» im Profil (sonst wird die Leiste zu eng)
+		...(user.role === 'admin'
+			? [{ href: '/admin', label: 'Admin', icon: Shield, desktopOnly: true }]
+			: [])
 	]);
 
 	const isActive = (href: string) =>
@@ -26,8 +31,19 @@
 	</a>
 	<nav>
 		{#each items as item (item.href)}
-			<a href={item.href} class:active={isActive(item.href)}>
-				<item.icon size={20} strokeWidth={1.6} />
+			<a
+				href={item.href}
+				class:active={isActive(item.href)}
+				class:desktop-only={'desktopOnly' in item}
+			>
+				<span class="icon">
+					<item.icon size={20} strokeWidth={1.6} />
+					{#if item.href === '/chat' && live.unread}
+						<span class="count" aria-label="{live.unread} ungelesen">
+							{live.unread > 99 ? '99+' : live.unread}
+						</span>
+					{/if}
+				</span>
 				<span>{item.label}</span>
 			</a>
 		{/each}
@@ -103,7 +119,32 @@
 	}
 
 	/* Mobil: Navigation als Leiste unten */
+	.icon {
+		position: relative;
+		display: grid;
+	}
+
+	.count {
+		position: absolute;
+		top: -6px;
+		right: -10px;
+		min-width: 17px;
+		height: 17px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--accent-text);
+		font-size: 10px;
+		font-weight: 700;
+		line-height: 17px;
+		text-align: center;
+	}
+
 	@media (max-width: 720px) {
+		.desktop-only {
+			display: none !important;
+		}
+
 		/* backdrop-filter würde die fixierte Leiste unten an den Header binden */
 		header {
 			justify-content: space-between;

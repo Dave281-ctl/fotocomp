@@ -28,7 +28,7 @@
 		<h1>Heute</h1>
 	</header>
 
-	{#if !data.groups.length}
+	{#if !data.groups.length && !data.chatNews.length}
 		<div class="stack empty" style="--gap: 16px">
 			<h2>Wähle ein Thema, um loszulegen.</h2>
 			<p class="muted">Jeden Tag ein Foto zum Thema, am Abend wird gegenseitig bewertet.</p>
@@ -64,6 +64,16 @@
 				{/if}
 			</section>
 		{/each}
+
+		{#if data.chatNews.length}
+			<section class="card group stack" style="--gap: 10px">
+				<a class="group-head row" href="/chat">
+					<h2>Chat</h2>
+					<ChevronRight size={18} class="chevron" />
+				</a>
+				<NewsList news={data.chatNews} />
+			</section>
+		{/if}
 
 		{#if quiet.length}
 			<div class="quiet">

@@ -1,12 +1,17 @@
 import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
+import { userRetentionOptions } from '#lib/chat-rules.ts';
+import { applyUserRetention, retentionFor } from '#lib/server/chat.ts';
 import { db } from '#lib/server/db.ts';
 import { users } from '#lib/server/schema.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	const u = locals.user!;
+	const { adminDays, ownDays } = await retentionFor(u);
 	return {
+		chat: { options: userRetentionOptions(adminDays), ownDays },
+		isAdmin: u.role === 'admin',
 		profile: {
 			id: u.id,
 			name: u.name,
@@ -24,14 +29,21 @@ export const actions: Actions = {
 		if (name.length < 2 || name.length > 40) {
 			return fail(400, { error: 'Bitte einen Namen mit 2–40 Zeichen.' });
 		}
+		const user = locals.user!;
+		const { adminDays, ownDays } = await retentionFor(user);
+		const chosen = Number(form.get('chatRetentionDays'));
+		const days = userRetentionOptions(adminDays).includes(chosen as never) ? chosen : adminDays;
 		await db
 			.update(users)
 			.set({
 				name,
 				feedbackDefault: form.get('feedbackDefault') === 'on',
-				showGps: form.get('showGps') === 'on'
+				showGps: form.get('showGps') === 'on',
+				// Gleich wie die Vorgabe: nichts speichern, damit eine spätere Änderung des Admins gilt
+				chatRetentionDays: days < adminDays ? days : null
 			})
-			.where(eq(users.id, locals.user!.id));
+			.where(eq(users.id, user.id));
+		if (days < ownDays) await applyUserRetention(user.id, days);
 		return { saved: true };
 	}
 };

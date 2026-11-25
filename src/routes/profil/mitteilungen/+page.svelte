@@ -160,6 +160,38 @@
 			Pro Zeitpunkt kommt höchstens eine Mail und eine Push-Mitteilung, auch bei mehreren Themen.
 			Push schweigt nachts von 22 bis 7 Uhr; das Resultat kommt dann um 7 Uhr.
 		</p>
+
+		<fieldset class="stack chat" style="--gap: 10px">
+			<legend>Chat <span class="muted small">· nur per Push</span></legend>
+			<label class="check">
+				<input type="checkbox" name="chat.direct" checked={data.chat.direct} />
+				Nachrichten in Einzelchats
+			</label>
+			<label class="check">
+				<input type="checkbox" name="chat.mentions" checked={data.chat.mentions} />
+				Wenn mich jemand mit @ erwähnt
+			</label>
+			<label class="check">
+				<input type="checkbox" name="chat.replies" checked={data.chat.replies} />
+				Antworten auf meine Nachrichten
+			</label>
+			<label>
+				Themen-Chats
+				<select name="chat.theme" style="width: auto">
+					<option value="all" selected={data.chat.theme === 'all'}>Alle Nachrichten</option>
+					<option value="mentions" selected={data.chat.theme === 'mentions'}>
+						Nur Erwähnungen und Antworten
+					</option>
+					<option value="off" selected={data.chat.theme === 'off'}>Keine</option>
+				</select>
+			</label>
+			<p class="muted small">
+				{data.isAdmin ? 'Als Admin bekommst du jede neue Nachricht im Hilfe-Chat. ' : ''}Einzelne
+				Chats kannst du im Chat selbst stummschalten (Glocke oben rechts). Nachts kommen nur
+				Einzelchats, Erwähnungen und Antworten.
+			</p>
+		</fieldset>
+
 		<div class="row">
 			<button class="btn primary">Speichern</button>
 			{#if form?.saved}<span class="muted small">Gespeichert</span>{/if}
@@ -213,6 +245,17 @@
 
 	p {
 		margin: 0;
+	}
+
+	fieldset.chat {
+		margin: 8px 0 0;
+		padding: 0;
+		border: 0;
+	}
+
+	fieldset.chat legend {
+		margin-bottom: 10px;
+		font-weight: 600;
 	}
 
 	.matrix {

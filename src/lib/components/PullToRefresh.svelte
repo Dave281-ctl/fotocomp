@@ -23,6 +23,8 @@
 
 		function onStart(e: TouchEvent) {
 			if (e.touches.length !== 1 || !canStart()) return;
+			// Bereiche mit eigenem Scrollen (z.B. der Chatverlauf) nicht abfangen
+			if ((e.target as Element | null)?.closest?.('[data-no-pull]')) return;
 			startX = e.touches[0].clientX;
 			startY = e.touches[0].clientY;
 		}

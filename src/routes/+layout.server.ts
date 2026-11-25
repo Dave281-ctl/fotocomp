@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { unreadTotal } from '#lib/server/chat.ts';
 import { config } from '#lib/server/config.ts';
 import { vapidPublicKey } from '#lib/server/push.ts';
 import { REPO_URL } from '#lib/server/version.ts';
@@ -18,6 +19,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		theme: locals.theme,
 		version: config.version,
 		pushKey: user ? await vapidPublicKey() : null,
+		chatUnread: user ? await unreadTotal(user) : 0,
 		repoUrl: REPO_URL
 	};
 };

@@ -1,4 +1,6 @@
 import { fail } from '@sveltejs/kit';
+import { adminRetention } from '#lib/chat-rules.ts';
+import { applyAdminRetention } from '#lib/server/chat.ts';
 import { UserError } from '#lib/server/errors.ts';
 import { getSettings, setSetting } from '#lib/server/settings.ts';
 import { formatWhen } from '#lib/schedule.ts';
@@ -23,6 +25,13 @@ export const actions: Actions = {
 		await setSetting('registration', form.get('registration') === 'invite' ? 'invite' : 'open');
 		await setSetting('themeCreation', form.get('themeCreation') === 'all' ? 'all' : 'admins');
 		return { saved: 'general' };
+	},
+
+	chat: async ({ request }) => {
+		const days = adminRetention(String((await request.formData()).get('chatRetentionDays')));
+		await setSetting('chatRetentionDays', String(days));
+		await applyAdminRetention(days);
+		return { saved: 'chat' };
 	},
 
 	policy: async ({ request }) => {

@@ -4,9 +4,16 @@
 	import Nav from '#lib/components/Nav.svelte';
 	import PullToRefresh from '#lib/components/PullToRefresh.svelte';
 	import PushPrompt from '#lib/components/PushPrompt.svelte';
+	import { onMount } from 'svelte';
+	import { startLive } from '#lib/chat-live.svelte.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	// Echtzeit für den Chat und den Zähler im Menü
+	onMount(() => {
+		if (data.user) startLive(data.chatUnread);
+	});
 </script>
 
 <svelte:head>

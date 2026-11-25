@@ -6,12 +6,15 @@
 		ChevronRight,
 		CircleHelp,
 		Images,
+		LifeBuoy,
 		LogOut,
+		Shield,
 		Smartphone,
 		SunMoon,
 		UserPlus
 	} from '@lucide/svelte';
 	import InstallGuide from '#lib/components/InstallGuide.svelte';
+	import { retentionLabel } from '#lib/chat-rules.ts';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import { isStandalone, platform } from '#lib/push-client.ts';
 	import type { PageProps } from './$types';
@@ -69,6 +72,18 @@
 				Aufnahmeort (GPS) meiner Fotos anderen zeigen
 			</label>
 		</div>
+		<label>
+			Meine Chatnachrichten löschen nach
+			<select name="chatRetentionDays" style="width: auto">
+				{#each data.chat.options as d (d)}
+					<option value={d} selected={data.chat.ownDays === d}>{retentionLabel(d)}</option>
+				{/each}
+			</select>
+			<span class="muted small hint">
+				Höchstens {retentionLabel(data.chat.options.at(-1) ?? 14)} (Vorgabe der Admins). Kürzer gilt auch
+				für deine bisherigen Nachrichten.
+			</span>
+		</label>
 		{#if form?.error}<p class="error">{form.error}</p>{/if}
 		<div class="row">
 			<button class="btn primary">Speichern</button>
@@ -90,6 +105,18 @@
 			<span>Mitteilungen</span>
 			<ChevronRight size={18} class="chevron" />
 		</a>
+		<a class="item" href="/chat/hilfe">
+			<LifeBuoy size={18} />
+			<span>Hilfe & Fragen <span class="muted small">· Chat mit den Admins</span></span>
+			<ChevronRight size={18} class="chevron" />
+		</a>
+		{#if data.isAdmin}
+			<a class="item" href="/admin">
+				<Shield size={18} />
+				<span>Admin</span>
+				<ChevronRight size={18} class="chevron" />
+			</a>
+		{/if}
 		<a class="item" href="/profil/einladen">
 			<UserPlus size={18} />
 			<span>Freunde einladen</span>

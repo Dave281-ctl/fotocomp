@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Camera, Trophy } from '@lucide/svelte';
+	import { Camera, MessageCircle, Trophy } from '@lucide/svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Lightbox from '#lib/components/Lightbox.svelte';
 	import { formatAperture, formatFocal } from '#lib/exif-format.ts';
@@ -37,6 +37,11 @@
 			<h1>
 				{data.person.name}{#if data.isMe}<span class="muted me"> (du)</span>{/if}
 			</h1>
+			{#if !data.isMe}
+				<a class="btn small write" href="/chat/mit/{data.person.id}">
+					<MessageCircle size={15} /> Nachricht schreiben
+				</a>
+			{/if}
 			<p class="muted small">
 				dabei seit {since}
 				{#if data.themes.length}
@@ -152,6 +157,12 @@
 
 	h1 {
 		margin: 0;
+	}
+
+	.write {
+		order: 3;
+		width: fit-content;
+		margin-top: 6px;
 	}
 
 	.me {

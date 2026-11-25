@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { CircleCheck, ExternalLink } from '@lucide/svelte';
+	import {
+		DEFAULT_RETENTION_DAYS,
+		RETENTION_OPTIONS,
+		adminRetention,
+		retentionLabel
+	} from '#lib/chat-rules.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -95,6 +101,36 @@
 		<div class="row">
 			<button class="btn primary">Speichern</button>
 			{#if form?.saved === 'general'}<span class="muted small">Gespeichert</span>{/if}
+		</div>
+	</form>
+
+	<form
+		method="POST"
+		action="?/chat"
+		class="stack"
+		style="--gap: 10px"
+		use:enhance={() =>
+			async ({ update }) =>
+				update({ reset: false })}
+	>
+		<h2 class="legend">Chat</h2>
+		<label>
+			Nachrichten löschen nach
+			<select name="chatRetentionDays" style="width: auto">
+				{#each RETENTION_OPTIONS as d (d)}
+					<option value={d} selected={adminRetention(data.settings.chatRetentionDays) === d}>
+						{retentionLabel(d)}{d === DEFAULT_RETENTION_DAYS ? ' (Standard)' : ''}
+					</option>
+				{/each}
+			</select>
+		</label>
+		<p class="muted small">
+			Gilt für alle Chats. Jede Person kann für ihre eigenen Nachrichten eine kürzere Zeit wählen.
+			Kürzer gilt sofort auch für bestehende Nachrichten.
+		</p>
+		<div class="row">
+			<button class="btn primary">Speichern</button>
+			{#if form?.saved === 'chat'}<span class="muted small">Gespeichert</span>{/if}
 		</div>
 	</form>
 

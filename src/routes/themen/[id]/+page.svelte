@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ChevronRight, CircleCheck } from '@lucide/svelte';
+	import { ChevronRight, CircleCheck, MessageCircle } from '@lucide/svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Podium from '#lib/components/Podium.svelte';
 	import TaskList from '#lib/components/TaskList.svelte';
@@ -23,9 +23,17 @@
 	<header class="stack" style="--gap: 10px">
 		<div class="row title">
 			<h1>{theme.title}</h1>
-			<a class="details row muted small" href="/themen/{theme.id}/details">
-				Details <ChevronRight size={16} />
-			</a>
+			<span class="row links">
+				{#if data.chat}
+					<a class="chat-link row" href="/chat/{data.chat.id}">
+						<MessageCircle size={16} /> Chat
+						{#if data.chat.unread}<span class="count">{data.chat.unread}</span>{/if}
+					</a>
+				{/if}
+				<a class="details row muted small" href="/themen/{theme.id}/details">
+					Details <ChevronRight size={16} />
+				</a>
+			</span>
 		</div>
 		{#if theme.description}<p class="lead">{theme.description}</p>{/if}
 		{#if data.members.length}
@@ -104,9 +112,37 @@
 		align-items: baseline;
 	}
 
+	.links {
+		--gap: 14px;
+		flex: none;
+	}
+
 	.details {
 		--gap: 2px;
-		flex: none;
+	}
+
+	.chat-link {
+		--gap: 6px;
+		padding: 5px 12px;
+		border-radius: 999px;
+		background: var(--surface);
+		font-size: 14px;
+	}
+
+	.chat-link:hover {
+		background: var(--surface-2);
+	}
+
+	.count {
+		min-width: 18px;
+		padding: 0 5px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--accent-text);
+		font-size: 11px;
+		font-weight: 700;
+		line-height: 18px;
+		text-align: center;
 	}
 
 	.details:hover {
