@@ -51,6 +51,19 @@
 					{data.members.length}
 					{data.members.length === 1 ? 'Teilnehmer' : 'Teilnehmende'}
 				</span>
+				{#if data.isMine && data.phase.kind !== 'ended'}
+					<form
+						method="POST"
+						action="?/leave"
+						class="leave"
+						use:enhance={({ cancel }) => {
+							if (!confirm(`«${theme.title}» wirklich verlassen? Deine Fotos bleiben erhalten.`))
+								cancel();
+						}}
+					>
+						<button class="btn ghost small">Thema verlassen</button>
+					</form>
+				{/if}
 			</div>
 		{/if}
 	</header>
@@ -170,6 +183,10 @@
 
 	.members {
 		--gap: 10px;
+	}
+
+	.leave {
+		margin-left: auto;
 	}
 
 	.avatars {

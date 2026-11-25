@@ -77,23 +77,11 @@
 		</section>
 	{/if}
 
-	{#if data.isMine || (data.canManage && !data.ended)}
+	{#if data.canManage && !data.ended}
 		<hr class="divider" />
 		<div class="row actions">
 			{#if data.canManage && !data.ended}
 				<a class="btn small" href="/themen/{theme.id}/bearbeiten">Thema bearbeiten</a>
-			{/if}
-			{#if data.isMine}
-				<form
-					method="POST"
-					action="?/leave"
-					use:enhance={({ cancel }) => {
-						if (!confirm(`«${theme.title}» wirklich verlassen? Deine Fotos bleiben erhalten.`))
-							cancel();
-					}}
-				>
-					<button class="btn ghost small">Thema verlassen</button>
-				</form>
 			{/if}
 			{#if data.canManage && !data.ended}
 				<form

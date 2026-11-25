@@ -1,11 +1,11 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { themePhase } from '#lib/schedule.ts';
 import { getThemeGallery } from '#lib/server/theme-gallery.ts';
 import { themeTasks } from '#lib/server/theme-status.ts';
 import { themeTabs } from '#lib/server/theme-tabs.ts';
 import { chatUnread, themeChat } from '#lib/server/chat.ts';
 import { now } from '#lib/server/time.ts';
-import { getMembership, getTheme, joinTheme, listMembers } from '#lib/server/themes.ts';
+import { getMembership, getTheme, joinTheme, leaveTheme, listMembers } from '#lib/server/themes.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -24,6 +24,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 export const actions: Actions = {
+	leave: async ({ params, locals }) => {
+		await leaveTheme(Number(params.id), locals.user!.id);
+		redirect(303, '/themen');
+	},
 	join: async ({ params, locals }) => {
 		const theme = await getTheme(Number(params.id));
 		if (themePhase(theme, now()).kind === 'ended') return fail(400);

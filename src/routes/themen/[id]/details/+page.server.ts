@@ -1,14 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { endRound, getCurrentRound, startManualRound } from '#lib/server/feedback.ts';
 import { now } from '#lib/server/time.ts';
-import {
-	canManageTheme,
-	endTheme,
-	getTheme,
-	leaveTheme,
-	listMembers,
-	themePhase
-} from '#lib/server/themes.ts';
+import { canManageTheme, endTheme, getTheme, listMembers, themePhase } from '#lib/server/themes.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -25,10 +18,6 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	leave: async ({ params, locals }) => {
-		await leaveTheme(Number(params.id), locals.user!.id);
-		redirect(303, '/themen');
-	},
 	startRound: async ({ params, request, locals }) => {
 		const theme = await getTheme(Number(params.id));
 		if (!canManageTheme(locals.user!, theme)) error(403);
