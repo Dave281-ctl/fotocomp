@@ -10,7 +10,9 @@ const defaults = {
 	/** 'admins' = nur Admins erstellen Themen, 'all' = alle User. */
 	themeCreation: 'admins' as 'admins' | 'all',
 	/** Welche Updates die App selbst installiert (siehe version.ts). */
-	updatePolicy: 'all' as UpdatePolicy
+	updatePolicy: 'all' as UpdatePolicy,
+	/** Chatnachrichten höchstens so viele Tage behalten (1–180, Standard 14). */
+	chatRetentionDays: '14'
 };
 
 export type Settings = typeof defaults;

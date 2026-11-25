@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
 	boolean,
 	date,
+	index,
 	integer,
 	jsonb,
 	pgTable,
@@ -13,6 +14,7 @@ import {
 	unique,
 	uniqueIndex
 } from 'drizzle-orm/pg-core';
+import type { ChatKind, ChatNotifyPrefs } from '../chat-rules.ts';
 import type { NotifyPrefs } from '../notify.ts';
 import type { PhotoExif } from '../types.ts';
 
@@ -40,6 +42,10 @@ export const users = pgTable('users', {
 	emailNotifications: boolean('email_notifications').notNull().default(true),
 	/** Mitteilungen pro Art und Kanal (Push/Mail); leer = Standard (siehe notify.ts). */
 	notify: jsonb('notify').$type<Partial<NotifyPrefs>>(),
+	/** Eigene Chatnachrichten nach so vielen Tagen löschen; leer = Vorgabe des Admins. */
+	chatRetentionDays: integer('chat_retention_days'),
+	/** Push für Chatnachrichten; leer = Standard (siehe chat-rules.ts). */
+	chatNotify: jsonb('chat_notify').$type<Partial<ChatNotifyPrefs>>(),
 	/** Wann «Heute» zuletzt angesehen wurde – Neuigkeiten danach gelten als neu. */
 	newsSeenAt: timestamp('news_seen_at', { withTimezone: true }),
 	/** Gesetzt, sobald die Einführung abgeschlossen ist. */
@@ -258,6 +264,118 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
 	device: text('device'),
 	createdAt: createdAt()
 });
+
+// --------------------------------------------------------------- Chat
+
+/**
+ * Ein Chat: Einzelchat zwischen zwei Personen, Gruppe eines Themas oder der
+ * Hilfe-Chat mit den Admins. `key` macht jeden Chat eindeutig:
+ * «direct:2:5» (kleinere ID zuerst), «theme:3», «help».
+ */
+export const chats = pgTable('chats', {
+	id: serial('id').primaryKey(),
+	key: text('key').notNull().unique(),
+	kind: text('kind').$type<ChatKind>().notNull(),
+	themeId: integer('theme_id').references(() => themes.id, { onDelete: 'cascade' }),
+	createdAt: createdAt()
+});
+
+/** Mitglieder eines Einzelchats (Themen-Chats nutzen die Teilnehmenden des Themas). */
+export const chatMembers = pgTable(
+	'chat_members',
+	{
+		chatId: integer('chat_id')
+			.notNull()
+			.references(() => chats.id, { onDelete: 'cascade' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' })
+	},
+	(t) => [primaryKey({ columns: [t.chatId, t.userId] })]
+);
+
+export const messages = pgTable(
+	'messages',
+	{
+		id: serial('id').primaryKey(),
+		chatId: integer('chat_id')
+			.notNull()
+			.references(() => chats.id, { onDelete: 'cascade' }),
+		authorId: integer('author_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		body: text('body').notNull(),
+		/** Zitierte Nachricht; verschwindet sie, bleibt «nicht mehr verfügbar». */
+		replyToId: integer('reply_to_id'),
+		createdAt: createdAt(),
+		/** Danach wird die Nachricht endgültig gelöscht. */
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+		/** Gelöscht: Es bleibt «Nachricht gelöscht» stehen. */
+		deletedAt: timestamp('deleted_at', { withTimezone: true })
+	},
+	(t) => [index('messages_chat').on(t.chatId, t.id), index('messages_expires').on(t.expiresAt)]
+);
+
+/** Eine Reaktion (Emoji) pro Person und Nachricht. */
+export const messageReactions = pgTable(
+	'message_reactions',
+	{
+		messageId: integer('message_id')
+			.notNull()
+			.references(() => messages.id, { onDelete: 'cascade' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		emoji: text('emoji').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.messageId, t.userId] })]
+);
+
+export const messageMentions = pgTable(
+	'message_mentions',
+	{
+		messageId: integer('message_id')
+			.notNull()
+			.references(() => messages.id, { onDelete: 'cascade' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' })
+	},
+	(t) => [primaryKey({ columns: [t.messageId, t.userId] }), index('mentions_user').on(t.userId)]
+);
+
+/** Bis zu welcher Nachricht jemand einen Chat gelesen hat (für die Zähler, ohne Lesebestätigung). */
+export const chatReads = pgTable(
+	'chat_reads',
+	{
+		chatId: integer('chat_id')
+			.notNull()
+			.references(() => chats.id, { onDelete: 'cascade' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		lastReadId: integer('last_read_id').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.chatId, t.userId] })]
+);
+
+/** Stummgeschaltete Chats; `until` leer = für immer. */
+export const chatMutes = pgTable(
+	'chat_mutes',
+	{
+		chatId: integer('chat_id')
+			.notNull()
+			.references(() => chats.id, { onDelete: 'cascade' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		until: timestamp('until', { withTimezone: true })
+	},
+	(t) => [primaryKey({ columns: [t.chatId, t.userId] })]
+);
+
+export type Chat = typeof chats.$inferSelect;
+export type Message = typeof messages.$inferSelect;
 
 export type User = typeof users.$inferSelect;
 export type Theme = typeof themes.$inferSelect;

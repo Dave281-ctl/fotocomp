@@ -35,6 +35,7 @@ import {
 	zurichParts
 } from '../schedule.ts';
 import { isQuietHour, resolvePrefs, type NotifyPrefs } from '../notify.ts';
+import { purgeExpired } from './chat.ts';
 import { config } from './config.ts';
 import { db } from './db.ts';
 import { getParticipation } from './feedback.ts';
@@ -66,17 +67,23 @@ const MIN_GAP = 30 * 60 * 1000;
 const HIGHLIGHT_DAYS = 14;
 
 let timer: ReturnType<typeof setInterval> | undefined;
+let purgeTimer: ReturnType<typeof setInterval> | undefined;
 
 export function startJobs() {
 	if (timer) return;
 	const run = () => runNotifications(now()).catch((e) => console.error('Benachrichtigungen:', e));
 	timer = setInterval(run, INTERVAL);
 	setTimeout(run, 10_000).unref();
+	// Abgelaufene Chatnachrichten endgültig löschen
+	const purge = () => purgeExpired().catch((e) => console.error('Chat aufräumen:', e));
+	purgeTimer = setInterval(purge, 10 * 60 * 1000);
+	setTimeout(purge, 20_000).unref();
 }
 
 export function stopJobs() {
 	clearInterval(timer);
-	timer = undefined;
+	clearInterval(purgeTimer);
+	timer = purgeTimer = undefined;
 }
 
 // --------------------------------------------------------------- Merker

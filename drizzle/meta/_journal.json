@@ -36,6 +36,13 @@
       "when": 1795600232671,
       "tag": "0004_neuigkeiten",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795618757827,
+      "tag": "0005_chat",
+      "breakpoints": true
     }
   ]
 }

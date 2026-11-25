@@ -52,7 +52,7 @@ export interface Task {
 
 /** Eine Neuigkeit in einem Thema (Heute). */
 export interface NewsItem {
-	kind: 'result' | 'weekly' | 'feedback';
+	kind: 'result' | 'weekly' | 'feedback' | 'mention';
 	at: Date;
 	/** «heute 05:00» */
 	when: string;
@@ -62,4 +62,34 @@ export interface NewsItem {
 	href: string;
 	/** Seit dem letzten Besuch von «Heute» dazugekommen */
 	isNew: boolean;
+}
+
+/** Eine Chatnachricht, wie sie im Browser angezeigt wird. */
+export interface ChatMessage {
+	id: number;
+	chatId: number;
+	author: { id: number; name: string; isAdmin: boolean };
+	/** Leer, wenn gelöscht */
+	body: string;
+	deleted: boolean;
+	createdAt: Date;
+	replyTo:
+		{ id: number; authorName: string; excerpt: string } | { id: number; missing: true } | null;
+	reactions: { emoji: string; users: { id: number; name: string }[] }[];
+	mentions: { id: number; name: string }[];
+}
+
+/** Ein Eintrag der Chatliste. */
+export interface ChatSummary {
+	id: number;
+	kind: 'direct' | 'theme' | 'help';
+	title: string;
+	/** Einzelchat: die andere Person (für Avatar und Link) */
+	person: { id: number; name: string } | null;
+	themeId: number | null;
+	last: { author: string; excerpt: string; at: Date; own: boolean } | null;
+	unread: number;
+	mentioned: boolean;
+	muted: boolean;
+	readOnly: boolean;
 }
