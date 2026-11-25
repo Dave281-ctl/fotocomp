@@ -1,13 +1,20 @@
 import { fail } from '@sveltejs/kit';
 import { UserError } from '#lib/server/errors.ts';
 import { getSettings, setSetting } from '#lib/server/settings.ts';
-import { describeSetup, triggerUpdate, updateStatus } from '#lib/server/updater.ts';
+import { formatWhen } from '#lib/schedule.ts';
+import { CHECK_HOUR, describeSetup, triggerUpdate, updateStatus } from '#lib/server/updater.ts';
 import { UPDATE_POLICIES, type UpdatePolicy } from '#lib/server/version.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
 	const update = await updateStatus();
-	return { settings: await getSettings(), update, setupText: describeSetup(update.setup) };
+	return {
+		settings: await getSettings(),
+		update,
+		setupText: describeSetup(update.setup),
+		checked: formatWhen(update.checkedAt, new Date()),
+		checkHour: `${String(CHECK_HOUR).padStart(2, '0')}:00`
+	};
 };
 
 export const actions: Actions = {
@@ -23,6 +30,14 @@ export const actions: Actions = {
 		if (!UPDATE_POLICIES.includes(policy)) return fail(400);
 		await setSetting('updatePolicy', policy);
 		return { saved: 'policy' };
+	},
+
+	/** Jetzt bei GitHub nach einer neuen Version fragen. */
+	check: async () => {
+		const status = await updateStatus(true);
+		return {
+			checked: status.checkFailed ? 'failed' : status.updateAvailable ? 'found' : 'current'
+		};
 	},
 
 	update: async () => {

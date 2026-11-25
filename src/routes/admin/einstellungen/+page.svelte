@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ExternalLink } from '@lucide/svelte';
+	import { CircleCheck, ExternalLink } from '@lucide/svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -101,26 +101,6 @@
 	<section id="updates" class="stack" style="--gap: 20px">
 		<h2 class="legend">Updates</h2>
 
-		<div class="versions card">
-			<div class="stack" style="--gap: 4px">
-				<span class="muted small">Installiert</span>
-				<strong>{u.installed}</strong>
-			</div>
-			<div class="stack" style="--gap: 4px">
-				<span class="muted small">Neueste Version</span>
-				<strong>{u.latest ?? 'unbekannt'}</strong>
-			</div>
-			<a
-				class="muted small row"
-				style="--gap: 6px"
-				href={u.releasesUrl}
-				target="_blank"
-				rel="noopener"
-			>
-				Versionsübersicht <ExternalLink size={14} />
-			</a>
-		</div>
-
 		{#if !u.configured}
 			<div class="notice stack" style="--gap: 6px">
 				<strong>
@@ -164,7 +144,9 @@
 				<p>
 					<strong>{u.latest}</strong> ist verfügbar.
 					{#if u.automatic && u.configured}
-						<span class="muted">Sie wird innerhalb einer Stunde automatisch installiert.</span>
+						<span class="muted">
+							Sie wird in der Nacht um {data.checkHour} Uhr automatisch installiert – oder gleich jetzt:
+						</span>
 					{:else if u.configured && u.policy !== 'manual'}
 						<span class="muted">
 							Sie liegt ausserhalb deiner Einstellung und wird nicht automatisch installiert.
@@ -208,8 +190,33 @@
 				{#if form?.updateError}<p class="error">{form.updateError}</p>{/if}
 			</div>
 		{:else if u.latest}
-			<p class="muted small">Fotocomp ist auf dem neuesten Stand.</p>
+			<p class="current row">
+				<CircleCheck size={16} /> Fotocomp {u.installed} ist auf dem neuesten Stand.
+			</p>
 		{/if}
+
+		<!-- Gesucht wird einmal täglich in der Nacht; hier auch sofort -->
+		<form method="POST" action="?/check" class="row check-now" use:enhance>
+			<button class="btn small">Jetzt nach Updates suchen</button>
+			<span class="muted small">
+				{#if form?.checked === 'failed' || (u.checkFailed && !form?.checked)}
+					GitHub war nicht erreichbar – bitte später nochmals versuchen.
+				{:else if form?.checked === 'current'}
+					Gesucht: keine neue Version.
+				{:else}
+					Zuletzt gesucht: {data.checked} · automatisch täglich um {data.checkHour} Uhr
+				{/if}
+			</span>
+			<a
+				class="muted small row"
+				style="--gap: 4px"
+				href={u.releasesUrl}
+				target="_blank"
+				rel="noopener"
+			>
+				Versionsübersicht <ExternalLink size={13} />
+			</a>
+		</form>
 	</section>
 </div>
 
@@ -227,14 +234,18 @@
 		margin: 0 0 10px;
 	}
 
-	.versions {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 16px 40px;
+	.current {
+		--gap: 8px;
+		margin: 0;
+		color: var(--ok);
 	}
 
-	.versions a {
+	.check-now {
+		--gap: 6px 14px;
+		flex-wrap: wrap;
+	}
+
+	.check-now a {
 		margin-left: auto;
 	}
 

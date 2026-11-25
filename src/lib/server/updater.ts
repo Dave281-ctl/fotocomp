@@ -6,9 +6,12 @@
 import { config } from './config.ts';
 import { UserError } from './errors.ts';
 import { getSettings } from './settings.ts';
+import { zurichParts } from '../schedule.ts';
 import { allowedByPolicy, policyRanges, versionInfo } from './version.ts';
 
-const CHECK_INTERVAL = 60 * 60 * 1000;
+/** Einmal täglich um diese Stunde (Zürcher Zeit) nach Updates suchen. */
+export const CHECK_HOUR = 3;
+const TICK = 10 * 60 * 1000;
 /** Antwortet Watchtower so lange nicht, lädt es gerade das neue Image. */
 const ANSWER_TIMEOUT = 8000;
 
@@ -53,9 +56,10 @@ export function describeSetup(setup: UpdateSetup) {
 	}
 }
 
-export async function updateStatus() {
+/** `refresh`: jetzt bei GitHub nach der neuesten Version fragen. */
+export async function updateStatus(refresh = false) {
 	const [version, { updatePolicy }, setup] = await Promise.all([
-		versionInfo(),
+		versionInfo(refresh),
 		getSettings(),
 		checkUpdateSetup()
 	]);
@@ -99,16 +103,17 @@ export async function triggerUpdate(): Promise<'started' | 'nothing'> {
 	return (body.summary?.updated ?? 0) > 0 ? 'started' : 'nothing';
 }
 
-/** Stündlich: neue Version im erlaubten Bereich? Dann installieren. */
+/** Nachts: neue Version im erlaubten Bereich? Dann installieren. */
 async function autoUpdate() {
-	if (!config.updateToken) return;
-	const status = await updateStatus();
-	if (!status.automatic) return;
+	const status = await updateStatus(true);
+	if (!status.automatic || !status.configured) return;
 	console.log(`Automatisches Update: ${status.installed} → ${status.latest}`);
 	const result = await triggerUpdate();
 	if (result === 'nothing')
-		console.log('Noch kein neues Image verfügbar, nächster Versuch in einer Stunde.');
+		console.log('Noch kein neues Image verfügbar, nächster Versuch in der nächsten Nacht.');
 }
+
+let lastRun: string | undefined;
 
 let timer: ReturnType<typeof setInterval> | undefined;
 
@@ -122,10 +127,14 @@ async function logSetup() {
 export function startAutoUpdate() {
 	if (timer) return;
 	setTimeout(() => void logSetup(), 15_000).unref();
-	const run = () =>
+	// Alle 10 Minuten nachsehen, ob es Zeit für die tägliche Suche ist
+	const tick = () => {
+		const { date, hour } = zurichParts(new Date());
+		if (hour !== CHECK_HOUR || lastRun === date) return;
+		lastRun = date;
 		autoUpdate().catch((e) => console.error('Automatisches Update:', e.message ?? e));
-	timer = setInterval(run, CHECK_INTERVAL);
-	setTimeout(run, 60_000).unref();
+	};
+	timer = setInterval(tick, TICK);
 }
 
 export function stopAutoUpdate() {

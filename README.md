@@ -61,7 +61,7 @@ Im Admin-Bereich kannst du die Registrierung danach auf «nur mit Einladung» st
 ### Updates
 
 1. Auf GitHub erscheint ein neues **Release** (z.B. `v0.4.0`). GitHub Actions baut daraus das Docker-Image (amd64 und arm64) unter `ghcr.io/dave281-ctl/fotocomp`.
-2. Die App fragt stündlich bei GitHub nach der neuesten Version und entscheidet nach der Einstellung unter **Admin → Einstellungen → Updates**:
+2. Die App fragt einmal täglich um 03:00 Uhr bei GitHub nach der neuesten Version – oder sofort mit **«Jetzt nach Updates suchen»** – und entscheidet nach der Einstellung unter **Admin → Einstellungen → Updates**:
    - **Automatisch – alle Versionen** (Standard)
    - **Automatisch – nur innerhalb v0.x.x** bzw. **nur innerhalb v0.3.x**: Grössere Sprünge wartet die App ab. Die Bereiche richten sich nach der installierten Version.
    - **Manuell**: Die App zeigt nur an, dass es eine neue Version gibt.
