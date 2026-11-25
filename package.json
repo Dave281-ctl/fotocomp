@@ -1,6 +1,6 @@
 {
 	"name": "fotocomp",
-	"version": "0.6.1",
+	"version": "0.7.0",
 	"description": "Ein schlichter Foto-Wettbewerb unter Freunden",
 	"license": "MIT",
 	"private": true,
