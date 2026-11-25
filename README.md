@@ -6,12 +6,12 @@ Fotocomp ist eine kleine Web-App, die du selbst betreibst, zum Beispiel auf eine
 
 Das Ziel: regelmässig fotografieren, voneinander lernen und dabei Spass haben. Ohne Werbung, ohne Algorithmus, ohne dass eure Fotos irgendwo anders landen.
 
-![Galerie mit den Tagessiegern](docs/screenshots/galerie.jpg)
+![Galerie mit dem Wochenfoto und den schönsten Fotos](docs/screenshots/galerie.jpg)
 
 <p align="center">
-  <img src="docs/screenshots/mobil.png" alt="Einführung, Bewertung und Galerie auf dem Handy" width="760">
+  <img src="docs/screenshots/mobil.png" alt="Heute, Themenansicht und Galerie auf dem Handy" width="760">
 </p>
-<p align="center"><sub>Auf dem Handy: kurze Einführung für neue Mitglieder · abends bewerten · die besten Fotos in der Galerie</sub></p>
+<p align="center"><sub>Auf dem Handy: «Heute» mit Aufgaben und Neuigkeiten · das Thema mit Siegertreppchen · die schönsten Fotos in der Galerie</sub></p>
 
 ## So funktioniert es
 
@@ -20,13 +20,14 @@ Das Ziel: regelmässig fotografieren, voneinander lernen und dabei Spass haben. 
 | 05:00 – 20:00        | Jeder lädt sein **Foto des Tages** hoch (ersetzen bis 20:00 möglich)                              |
 | 20:00 – 05:00        | **Bewertung** mit 1–5 Sternen, anonym; das eigene Foto ist ausgenommen                            |
 | 05:00                | **Enthüllung**: Rangliste mit Namen, danach beginnt der nächste Tag                               |
-| Wochentag (z.B. So.) | **Wochenbewertung**: jeder wählt seine Top 3 der Woche, am nächsten Morgen gibt es das Wochenfoto |
+| Wochentag (z.B. Mo.) | **Wochenbewertung**: jeder wählt seine Top 3 der Woche, am nächsten Morgen gibt es das Wochenfoto |
 
 Hat bis 20:00 Uhr im Thema niemand ein Foto hochgeladen, gibt es nichts zu bewerten. Dann ist der Upload für den nächsten Tag sofort offen (ausser vor dem Wochenbewertungstag und am letzten Tag eines Themas).
 
-- **Themen** haben einen Titel und eine Beschreibung, dazu ein Enddatum oder sie laufen wiederkehrend. Mehrere Themen können parallel laufen, und jeder kann bei mehreren mitmachen. Auf der Startseite wechselt man oben per Reiter zwischen den eigenen Themen; ein Punkt zeigt, wo noch etwas zu tun ist.
+- **Heute** zeigt auf einen Blick, was zu tun ist und was es Neues gibt, nach Thema gruppiert: oben die Aufgaben (Foto hochladen, bewerten, Wochenfoto wählen, Feedback-Runde), deutlich markiert solange offen und mit Häkchen wenn erledigt, darunter Neuigkeiten wie Resultate, Wochenfoto und neues Feedback. Was seit dem letzten Besuch neu ist, trägt einen Punkt. Jede Zeile führt direkt an die richtige Stelle im Thema.
+- **Themen** haben einen Titel und eine Beschreibung, dazu ein Enddatum oder sie laufen wiederkehrend. Mehrere Themen können parallel laufen, und jeder kann bei mehreren mitmachen. Die eigenen Themen stehen oben als Reiter (ein Punkt zeigt, wo noch etwas offen ist), darunter lassen sich alle Themen durchsuchen. In der Themenansicht stehen Beschreibung, Teilnehmende und die eigenen Aufgaben, darunter das Siegertreppchen (Wochenfoto oder letzter Tag) und alle Fotos des Themas. Hochladen, Bewerten, Wochenfoto, Feedback-Runde und Details liegen je eine Ebene tiefer; dort wird auch mitgemacht oder ein Thema verlassen.
 - **Feedback**: Pro Foto lässt sich festlegen, ob Feedback willkommen ist. Feedback sieht nur der Fotograf. Zusätzlich gibt es **Feedback-Runden** pro Thema, automatisch (z.B. jeden Montag 19:00) oder von Hand gestartet.
-- **Galerie**: Standardmässig die Tagessieger und Wochenfotos aller Themen, mit Badge. Auf Wunsch alle Fotos, gefiltert nach Thema und/oder Person.
+- **Galerie** zum Staunen: die schönsten Fotos aller Themen – Wochenfotos, Tagessieger und alles ab 4 Sternen –, nach Woche gruppiert, das schönste jeder Woche gross.
 - **Als App auf dem Handy**: Fotocomp lässt sich auf iPhone und Android zum Home-Bildschirm hinzufügen und läuft dann ohne Browserleiste. Wer Fotocomp auf dem Handy im Browser öffnet, findet im Profil eine Anleitung passend zu seinem Gerät.
 - **Push-Mitteilungen und Mails**: Unter Profil → «Mitteilungen» wählt jeder pro Art (Hochladen, Bewertung, Resultat, Wochenfoto, Feedback-Runde, neues Feedback), ob sie per Push und/oder Mail kommt. Beim ersten Start der installierten App fragt Fotocomp einmal, ob Mitteilungen erlaubt sind. Ganz automatisch geht es nicht, weil iOS und Android dafür ein Antippen verlangen. Pro Zeitpunkt kommt höchstens eine Mail und eine Push-Mitteilung, auch bei mehreren Themen; Mails nie mehr als eine pro 30 Minuten. Push schweigt nachts (22–07 Uhr). In der Mail steht oben eine persönliche Zeile, etwa neues Feedback, ein eigener Tagessieg oder eine Serie. Die Texte stehen in [`src/lib/mail-texts.ts`](src/lib/mail-texts.ts). Auf dem iPhone braucht Push iOS 16.4 oder neuer, und Fotocomp muss auf dem Home-Bildschirm installiert sein.
 - **Einführung**: Neue Benutzer sehen nach der ersten Anmeldung eine kurze Einführung in Schritten (zum Wischen) und wählen am Schluss genau ein Thema. Weitere Themen kommen später unter «Themen» dazu. Nachlesen geht jederzeit unter Profil → «So funktioniert Fotocomp».
