@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import Avatar from '#lib/components/Avatar.svelte';
+	import SubHeader from '#lib/components/SubHeader.svelte';
 	import { formatDay, formatTime, themeSummary, zurichParts } from '#lib/schedule.ts';
 	import type { PageProps } from './$types';
 
@@ -8,48 +10,41 @@
 	const when = (d: Date) => `${formatDay(zurichParts(d).date)}, ${formatTime(d)} Uhr`;
 </script>
 
-<svelte:head><title>{theme.title} · Fotocomp</title></svelte:head>
+<svelte:head><title>Details · {theme.title} · Fotocomp</title></svelte:head>
 
-<div class="page narrow stack" style="--gap: 32px">
-	<div class="stack" style="--gap: 12px">
-		<p class="eyebrow">Thema</p>
-		<h1>{theme.title}</h1>
-		{#if theme.description}<p class="lead">{theme.description}</p>{/if}
-		<p class="muted small">{themeSummary(theme).join(' · ')}</p>
-	</div>
-
-	{#if data.phase !== 'ended'}
-		<form method="POST" class="row" use:enhance>
-			{#if data.isMine}
-				<span class="badge accent">Du machst mit</span>
-				<button class="btn ghost small" formaction="?/leave">Verlassen</button>
-			{:else}
-				<button class="btn primary" formaction="?/join">Mitmachen</button>
-			{/if}
-		</form>
-	{:else}
-		<p class="muted">
-			Dieses Thema ist beendet. <a href="/galerie?thema={theme.id}"><u>Zur Galerie</u></a>
-		</p>
-	{/if}
+<div class="page narrow stack" style="--gap: 36px">
+	<SubHeader {theme} eyebrow="Details & Einstellungen" title={theme.title} />
 
 	<section class="stack" style="--gap: 10px">
-		<h2>Teilnehmende</h2>
+		<h2>Ablauf</h2>
+		{#if theme.description}<p>{theme.description}</p>{/if}
+		<ul class="facts muted">
+			{#each themeSummary(theme) as line (line)}<li>{line}</li>{/each}
+			<li>Jeden Tag: Upload bis 20:00 Uhr, Bewertung bis 05:00 Uhr, dann das Resultat.</li>
+		</ul>
+	</section>
+
+	<section class="stack" style="--gap: 12px">
+		<h2>Teilnehmende ({data.members.length})</h2>
 		{#if data.members.length}
-			<p class="muted">{data.members.map((m) => m.name).join(', ')}</p>
+			<ul class="members">
+				{#each data.members as m (m.id)}
+					<li class="row"><Avatar name={m.name} id={m.id} size={28} /> {m.name}</li>
+				{/each}
+			</ul>
 		{:else}
 			<p class="muted">Noch niemand.</p>
 		{/if}
 	</section>
 
-	{#if data.phase !== 'ended'}
+	{#if !data.ended}
 		<section class="stack" style="--gap: 10px">
 			<h2>Feedback-Runde</h2>
 			{#if data.round}
 				<p class="muted">
 					{data.roundActive ? 'Läuft bis' : 'Nächste Runde:'}
 					{when(data.roundActive ? data.round.endsAt : data.round.startsAt)}
-					· <a href="/feedback"><u>Zur Runde</u></a>
+					{#if data.isMine}· <a href="/themen/{theme.id}/feedback"><u>Zur Runde</u></a>{/if}
 				</p>
 			{:else}
 				<p class="muted">Keine Runde geplant.</p>
@@ -77,26 +72,65 @@
 		</section>
 	{/if}
 
-	{#if data.canManage && data.phase !== 'ended'}
+	{#if data.isMine || (data.canManage && !data.ended)}
 		<hr class="divider" />
-		<div class="row">
-			<a class="btn small" href="/themen/{theme.id}/bearbeiten">Bearbeiten</a>
-			<form
-				method="POST"
-				action="?/end"
-				use:enhance={({ cancel }) => {
-					if (!confirm('Thema jetzt beenden?')) cancel();
-				}}
-			>
-				<button class="btn danger small">Thema beenden</button>
-			</form>
+		<div class="row actions">
+			{#if data.canManage && !data.ended}
+				<a class="btn small" href="/themen/{theme.id}/bearbeiten">Thema bearbeiten</a>
+			{/if}
+			{#if data.isMine}
+				<form
+					method="POST"
+					action="?/leave"
+					use:enhance={({ cancel }) => {
+						if (!confirm(`«${theme.title}» wirklich verlassen? Deine Fotos bleiben erhalten.`))
+							cancel();
+					}}
+				>
+					<button class="btn ghost small">Thema verlassen</button>
+				</form>
+			{/if}
+			{#if data.canManage && !data.ended}
+				<form
+					method="POST"
+					action="?/end"
+					use:enhance={({ cancel }) => {
+						if (!confirm('Thema jetzt für alle beenden?')) cancel();
+					}}
+				>
+					<button class="btn danger small">Thema beenden</button>
+				</form>
+			{/if}
 		</div>
 	{/if}
 </div>
 
 <style>
-	.lead {
-		font-size: 18px;
-		line-height: 1.5;
+	p {
+		margin: 0;
+	}
+
+	.facts {
+		display: grid;
+		gap: 4px;
+		margin: 0;
+		padding-left: 18px;
+	}
+
+	.members {
+		display: grid;
+		gap: 8px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.members li {
+		--gap: 10px;
+	}
+
+	.actions {
+		--gap: 8px;
+		flex-wrap: wrap;
 	}
 </style>

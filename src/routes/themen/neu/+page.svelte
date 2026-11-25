@@ -10,7 +10,7 @@
 			description: '',
 			startDate: data.today,
 			endDate: null,
-			weeklyVoteDay: 7,
+			weeklyVoteDay: 1, // Montag
 			feedbackDay: null,
 			feedbackTime: null,
 			feedbackHours: 24

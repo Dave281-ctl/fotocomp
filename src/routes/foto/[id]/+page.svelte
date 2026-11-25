@@ -71,7 +71,7 @@
 	<aside>
 		<section class="panel stack" style="--gap: 24px">
 			<div class="stack" style="--gap: 6px">
-				<a class="eyebrow" href="/galerie?thema={data.theme.id}">{data.theme.title}</a>
+				<a class="eyebrow" href="/themen/{data.theme.id}">{data.theme.title}</a>
 				<p class="muted small">{formatDay(data.day)}</p>
 			</div>
 

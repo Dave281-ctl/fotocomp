@@ -1,50 +1,41 @@
-import { fail } from '@sveltejs/kit';
 import { desc } from 'drizzle-orm';
 import { themePhase } from '#lib/schedule.ts';
 import { db } from '#lib/server/db.ts';
 import { themes } from '#lib/server/schema.ts';
+import { themeTabs } from '#lib/server/theme-tabs.ts';
 import { now } from '#lib/server/time.ts';
-import {
-	canCreateTheme,
-	getMemberships,
-	getTheme,
-	joinTheme,
-	leaveTheme,
-	memberCount
-} from '#lib/server/themes.ts';
-import type { Actions, PageServerLoad } from './$types';
+import { canCreateTheme, memberCount } from '#lib/server/themes.ts';
+import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
 	const t = now();
+	const tabs = await themeTabs(user, t);
+	const mine = new Set(tabs.map((tab) => tab.id));
 	const all = await db.select().from(themes).orderBy(desc(themes.startDate));
-	const mine = (await getMemberships(user.id)).map((m) => m.theme.id);
-
-	const withInfo = await Promise.all(
+	const list = await Promise.all(
 		all.map(async (theme) => ({
-			...theme,
+			id: theme.id,
+			title: theme.title,
+			description: theme.description,
+			startDate: theme.startDate,
+			endDate: theme.endDate,
 			phase: themePhase(theme, t).kind,
-			members: await memberCount(theme.id)
+			members: await memberCount(theme.id),
+			mine: mine.has(theme.id)
 		}))
 	);
 	return {
-		open: withInfo.filter((x) => x.phase !== 'ended'),
-		past: withInfo.filter((x) => x.phase === 'ended'),
-		myThemeIds: mine,
+		tabs,
+		// Eigene zuerst, dann laufende, dann bald startende
+		open: list
+			.filter((x) => x.phase !== 'ended')
+			.sort(
+				(a, b) =>
+					Number(b.mine) - Number(a.mine) ||
+					Number(a.phase === 'upcoming') - Number(b.phase === 'upcoming')
+			),
+		past: list.filter((x) => x.phase === 'ended'),
 		canCreate: await canCreateTheme(user)
 	};
-};
-
-export const actions: Actions = {
-	join: async ({ request, locals }) => {
-		const id = Number((await request.formData()).get('id'));
-		const theme = await getTheme(id);
-		if (themePhase(theme, now()).kind === 'ended')
-			return fail(400, { error: 'Thema ist beendet.' });
-		await joinTheme(theme.id, locals.user!.id);
-	},
-	leave: async ({ request, locals }) => {
-		const id = Number((await request.formData()).get('id'));
-		await leaveTheme(id, locals.user!.id);
-	}
 };

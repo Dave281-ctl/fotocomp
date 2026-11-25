@@ -3,6 +3,8 @@ import {
 	addDays,
 	autoFeedbackRound,
 	feedbackRoundDays,
+	formatDeadline,
+	formatWhen,
 	at,
 	gameDay,
 	isRevealed,
@@ -188,5 +190,18 @@ describe('feedbackRoundDays', () => {
 			from: '2026-11-25',
 			to: '2026-12-01'
 		});
+	});
+});
+
+describe('Fristen und Zeitpunkte', () => {
+	const now = z('2026-11-25', 10); // Mittwoch
+	it('formatiert Fristen relativ zu heute', () => {
+		expect(formatDeadline(z('2026-11-25', 20), now)).toBe('bis 20:00 Uhr');
+		expect(formatDeadline(z('2026-11-26', 5), now)).toBe('bis morgen 05:00 Uhr');
+		expect(formatDeadline(z('2026-11-30', 9), now)).toMatch(/^bis Mo\.? 09:00 Uhr$/);
+	});
+	it('formatiert vergangene Zeitpunkte', () => {
+		expect(formatWhen(z('2026-11-25', 5), now)).toBe('heute 05:00');
+		expect(formatWhen(z('2026-11-24', 19, 12), now)).toBe('gestern 19:12');
 	});
 });

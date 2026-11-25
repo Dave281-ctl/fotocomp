@@ -1,321 +1,185 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import Lightbox from '#lib/components/Lightbox.svelte';
-	import PhotoFeed from '#lib/components/PhotoFeed.svelte';
-	import ThemeTabs from '#lib/components/ThemeTabs.svelte';
-	import Uploader from '#lib/components/Uploader.svelte';
-	import { photoSrc, photoSrcset } from '#lib/media.ts';
-	import { formatDay, formatTime, formatWeekdayTime } from '#lib/schedule.ts';
-	import type { FeedPhoto } from '#lib/types.ts';
+	import { onMount } from 'svelte';
+	import { ChevronRight, CircleCheck } from '@lucide/svelte';
+	import NewsList from '#lib/components/NewsList.svelte';
+	import TaskList from '#lib/components/TaskList.svelte';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
-	let replacing = $state(false);
+	let { data }: PageProps = $props();
 
-	// Bewertung: lokal sofort anzeigen, im Hintergrund speichern
-	let votingPhotos = $derived(data.theme ? data.votingPhotos : []);
-	let votingIndex = $state<number | null>(null);
-	let resultIndex = $state<number | null>(null);
-	let weekIndex = $state<number | null>(null);
-	let winnerIndex = $state<number | null>(null);
-
-	// Wochenbewertung: Antippen vergibt den nächsten freien Platz, nochmals antippen entfernt
-	let picks = $derived(data.theme ? data.myPicks : []);
-	let picksDirty = $state(false);
-	function togglePick(photo: FeedPhoto) {
-		picks = picks.includes(photo.id)
-			? picks.filter((id) => id !== photo.id)
-			: picks.length < 3
-				? [...picks, photo.id]
-				: picks;
-		picksDirty = true;
-	}
-	let voteError = $state('');
-	const toRate = $derived(votingPhotos.filter((p) => !p.isOwn));
-	const rated = $derived(toRate.filter((p) => p.myStars !== null).length);
-
-	async function rate(photo: FeedPhoto, stars: number) {
-		const previous = photo.myStars;
-		const set = (value: number | null) =>
-			(votingPhotos = votingPhotos.map((p) => (p.id === photo.id ? { ...p, myStars: value } : p)));
-		set(stars);
-		const res = await fetch('/api/vote', {
+	// Erst nach dem Anzeigen als gesehen markieren (nicht schon beim Vorladen)
+	onMount(() => {
+		void fetch('/api/gesehen', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ photoId: photo.id, stars })
+			body: JSON.stringify({ at: data.seenAt })
 		});
-		if (!res.ok) {
-			set(previous);
-			voteError = 'Die Bewertung konnte nicht gespeichert werden. Ist die Bewertungszeit vorbei?';
-		}
-	}
+	});
+
+	const active = $derived(data.groups.filter((g) => g.open || g.news.length));
+	const quiet = $derived(data.groups.filter((g) => !g.open && !g.news.length));
 </script>
 
 <svelte:head><title>Heute · Fotocomp</title></svelte:head>
 
-<div class="page stack" style="--gap: 40px">
-	{#if !data.theme}
+<div class="page narrow stack" style="--gap: 28px">
+	<header class="stack" style="--gap: 6px">
+		<p class="eyebrow">{data.day}</p>
+		<h1>Heute</h1>
+	</header>
+
+	{#if !data.groups.length}
 		<div class="stack empty" style="--gap: 16px">
-			<p class="eyebrow">Willkommen, {data.user?.name}</p>
-			<h1>Wähle ein Thema, um loszulegen.</h1>
+			<h2>Wähle ein Thema, um loszulegen.</h2>
 			<p class="muted">Jeden Tag ein Foto zum Thema, am Abend wird gegenseitig bewertet.</p>
 			<div><a class="btn primary" href="/themen">Zu den Themen</a></div>
 		</div>
 	{:else}
-		{@const phase = data.phase}
-		<ThemeTabs tabs={data.tabs} current={data.theme.id} />
-		<header class="stack" style="--gap: 10px">
-			<p class="eyebrow">
-				{#if phase.kind === 'upload' || phase.kind === 'voting' || phase.kind === 'weekly'}
-					{formatDay(phase.day)}
-				{:else}
-					Thema
-				{/if}
+		<!-- Auf einen Blick: Gibt es etwas zu tun? -->
+		{#if data.openTotal}
+			<p class="summary open">
+				<span class="ring" aria-hidden="true"></span>
+				{data.openTotal}
+				{data.openTotal === 1 ? 'Aufgabe wartet' : 'Aufgaben warten'} auf dich
 			</p>
-			<h1>{data.theme.title}</h1>
-			{#if data.theme.description}<p class="lead">{data.theme.description}</p>{/if}
-		</header>
-
-		{#if data.feedbackRound && data.feedbackRound.participating !== false}
-			{@const round = data.feedbackRound}
-			<a class="notice row feedback-hint" href="/feedback?thema={data.theme.id}">
-				<span>
-					{#if round.active}
-						Feedback-Runde läuft bis {formatWeekdayTime(round.endsAt)} Uhr.
-					{:else}
-						Feedback-Runde ab {formatWeekdayTime(round.startsAt)} Uhr.
-					{/if}
-					{round.participating === null ? 'Machst du mit?' : ''}
-				</span>
-				<span class="muted small">Ansehen →</span>
-			</a>
+		{:else}
+			<p class="summary done"><CircleCheck size={20} /> Alles erledigt</p>
 		{/if}
 
-		{#if phase.kind === 'upcoming'}
-			<p class="notice">Das Thema startet am {formatDay(data.theme.startDate)}.</p>
-		{:else if phase.kind === 'upload'}
-			<section class="stack">
-				{#if data.myPhoto && !replacing}
-					<figure class="mine">
-						<img
-							src={photoSrc(data.myPhoto.id)}
-							srcset={photoSrcset(data.myPhoto.id)}
-							sizes="(max-width: 1080px) 100vw, 1080px"
-							alt="Dein Foto des Tages"
-						/>
-					</figure>
-					<div class="row" style="justify-content: space-between">
-						<p class="muted">
-							Dein Foto ist bereit. {phase.early ? 'Morgen ab' : 'Ab'}
-							{formatTime(phase.endsAt)} Uhr sehen es die anderen.
-						</p>
-						<div class="row" style="--gap: 4px">
-							<button class="btn small" onclick={() => (replacing = true)}>Ersetzen</button>
-							<form
-								method="POST"
-								action="?/deletePhoto"
-								use:enhance={({ cancel }) => {
-									if (!confirm('Foto wirklich löschen?')) cancel();
-								}}
-							>
-								<input type="hidden" name="theme" value={data.theme.id} />
-								<button class="btn danger small">Löschen</button>
-							</form>
-						</div>
-					</div>
-				{:else}
-					{#if phase.early}
-						<p class="notice">
-							Heute hat niemand ein Foto hochgeladen. Du kannst schon dein Foto für morgen
-							hochladen, bis morgen {formatTime(phase.endsAt)} Uhr.
-						</p>
-					{:else}
-						<p class="muted">Lade dein Foto des Tages bis {formatTime(phase.endsAt)} Uhr hoch.</p>
+		{#each active as g (g.theme.id)}
+			<section class="card group stack" style="--gap: 10px">
+				<a class="group-head row" href="/themen/{g.theme.id}">
+					<h2>{g.theme.title}</h2>
+					{#if g.open}
+						<span class="chip open">{g.open} offen</span>
+					{:else if g.tasks.length}
+						<span class="chip done"><CircleCheck size={13} /> erledigt</span>
 					{/if}
-					<Uploader
-						themeId={data.theme.id}
-						feedbackDefault={data.feedbackDefault}
-						maxMb={data.maxUploadMb}
-						replacing={!!data.myPhoto}
-						error={form?.uploadError}
-					/>
-					{#if replacing}
-						<div>
-							<button class="btn ghost small" onclick={() => (replacing = false)}>Abbrechen</button>
-						</div>
-					{/if}
+					<ChevronRight size={18} class="chevron" />
+				</a>
+				{#if g.tasks.length}<TaskList tasks={g.tasks} />{/if}
+				{#if g.news.length}
+					{#if g.tasks.length}<hr class="sep" />{/if}
+					<NewsList news={g.news} />
 				{/if}
 			</section>
-		{:else if phase.kind === 'voting'}
-			<section class="stack" style="--gap: 24px">
-				<div class="row" style="justify-content: space-between">
-					<div class="stack" style="--gap: 4px">
-						<h2>Bewerte die Fotos von heute</h2>
-						<p class="muted small">
-							Anonym bis {formatTime(phase.endsAt)} Uhr · danach wird enthüllt, wer was fotografiert hat.
-						</p>
-					</div>
-					{#if toRate.length}
-						<span class="badge" class:accent={rated === toRate.length}>
-							{rated} / {toRate.length} bewertet
-						</span>
-					{/if}
-				</div>
-				{#if voteError}<p class="error">{voteError}</p>{/if}
-				{#if votingPhotos.length}
-					<PhotoFeed photos={votingPhotos} voting onopen={(i) => (votingIndex = i)} onrate={rate} />
-					<Lightbox photos={votingPhotos} bind:index={votingIndex} voting onrate={rate} />
-				{:else}
-					<p class="muted">Heute wurden keine Fotos hochgeladen.</p>
-				{/if}
-			</section>
-		{:else if phase.kind === 'weekly'}
-			<section class="stack" style="--gap: 24px">
-				<div class="stack" style="--gap: 4px">
-					<h2>Wähle das Wochenfoto</h2>
-					<p class="muted small">
-						Tippe deine drei Favoriten der Woche an: der erste erhält 3 Punkte, der zweite 2, der
-						dritte 1. Enthüllung um {formatTime(phase.endsAt)} Uhr.
-					</p>
-				</div>
-				{#if data.weekPhotos.length}
-					<PhotoFeed
-						photos={data.weekPhotos}
-						{picks}
-						onpick={togglePick}
-						onopen={(i) => (weekIndex = i)}
-					/>
-					<Lightbox photos={data.weekPhotos} bind:index={weekIndex} />
-					<form
-						method="POST"
-						action="?/weekly"
-						class="savebar row"
-						use:enhance={() =>
-							async ({ update }) => {
-								await update({ reset: false });
-								picksDirty = false;
-							}}
-					>
-						<input type="hidden" name="theme" value={data.theme.id} />
-						<input type="hidden" name="picks" value={picks.join(',')} />
+		{/each}
+
+		{#if quiet.length}
+			<div class="quiet">
+				{#each quiet as g (g.theme.id)}
+					<a class="row" href="/themen/{g.theme.id}">
+						<span>{g.theme.title}</span>
 						<span class="muted small">
-							{picks.length} von 3 gewählt
-							{#if !picksDirty && form?.weeklySaved}· gespeichert{/if}
+							{g.upcoming ? `startet ${g.upcoming}` : 'nichts zu tun'}
 						</span>
-						{#if form?.weeklyError}<span class="error">{form.weeklyError}</span>{/if}
-						<button class="btn accent" disabled={!picksDirty}>Wahl speichern</button>
-					</form>
-				{:else}
-					<p class="muted">Diese Woche gibt es keine Fotos.</p>
-				{/if}
-			</section>
-		{/if}
-
-		{#if data.weeklyResult}
-			{@const result = data.weeklyResult}
-			<section class="stack" style="--gap: 24px">
-				<hr class="divider" />
-				<div class="stack" style="--gap: 4px">
-					<p class="eyebrow">Wochenfoto</p>
-					<h2>Woche bis {formatDay(result.voteDay)}</h2>
-				</div>
-				{#if result.winners.length}
-					<PhotoFeed photos={result.winners} onopen={(i) => (winnerIndex = i)} />
-					<Lightbox photos={result.winners} bind:index={winnerIndex} />
-				{:else}
-					<p class="muted">Diese Woche wurden keine Stimmen abgegeben.</p>
-				{/if}
-				<ol class="ranking">
-					{#each result.photographers as p (p.userId)}
-						<li>
-							<span class="rank">{p.rank}.</span>
-							<span>{p.name}</span>
-							<span class="muted small">{p.total.toFixed(1)} ★ aus {p.days} Tagen</span>
-						</li>
-					{/each}
-				</ol>
-			</section>
-		{/if}
-
-		{#if data.resultDay && data.results.length}
-			<section class="stack" style="--gap: 24px">
-				<hr class="divider" />
-				<div class="stack" style="--gap: 4px">
-					<p class="eyebrow">Resultat</p>
-					<h2>{formatDay(data.resultDay)}</h2>
-				</div>
-				<PhotoFeed photos={data.results} onopen={(i) => (resultIndex = i)} />
-				<Lightbox photos={data.results} bind:index={resultIndex} />
-			</section>
+						<ChevronRight size={16} class="chevron" />
+					</a>
+				{/each}
+			</div>
 		{/if}
 	{/if}
 </div>
 
 <style>
 	.empty {
-		max-width: 560px;
-		padding-top: 10vh;
+		padding-top: 6vh;
 	}
 
-	.lead {
-		font-size: 18px;
-		max-width: 640px;
-	}
-
-	.feedback-hint {
-		justify-content: space-between;
-	}
-
-	.savebar {
-		position: sticky;
-		bottom: 16px;
-		justify-content: space-between;
-		padding: 12px 12px 12px 20px;
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--surface) 90%, transparent);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-	}
-
-	@media (max-width: 720px) {
-		.feedback-hint {
-			justify-content: space-between;
-		}
-
-		.savebar {
-			bottom: calc(var(--nav-h) + 12px);
-		}
-	}
-
-	.ranking {
-		list-style: none;
+	.summary {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 		margin: 0;
-		padding: 0;
-		max-width: 480px;
+		padding: 14px 18px;
+		border-radius: var(--radius);
+		font-weight: 600;
 	}
 
-	.ranking li {
-		display: grid;
-		grid-template-columns: 32px 1fr auto;
-		align-items: baseline;
-		padding: 10px 0;
-		border-bottom: 1px solid var(--line);
+	.summary.open {
+		background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+		color: var(--accent);
 	}
 
-	.rank {
+	.summary.done {
+		background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+		color: var(--ok);
+	}
+
+	.ring {
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: var(--accent);
+		box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
+	}
+
+	.group {
+		padding: 14px 8px 8px;
+	}
+
+	.group-head {
+		--gap: 10px;
+		padding: 0 10px 2px;
+	}
+
+	.group-head h2 {
+		margin: 0;
+		font-size: 18px;
+	}
+
+	.group-head :global(.chevron) {
+		margin-left: auto;
 		color: var(--muted);
 	}
 
-	figure {
-		margin: 0;
-		background: var(--photo-bg);
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 9px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	.chip.open {
+		background: var(--accent);
+		color: var(--accent-text);
+	}
+
+	.chip.done {
+		color: var(--ok);
+	}
+
+	.sep {
+		margin: 2px 14px;
+		border: 0;
+		border-top: 1px solid var(--line);
+	}
+
+	.quiet {
+		display: grid;
 		border-radius: var(--radius);
+		background: var(--surface);
 		overflow: hidden;
 	}
 
-	figure img {
-		width: 100%;
-		max-height: 75vh;
-		object-fit: contain;
+	.quiet a {
+		--gap: 10px;
+		padding: 14px 18px;
+	}
+
+	.quiet a + a {
+		border-top: 1px solid var(--line);
+	}
+
+	.quiet a :global(.chevron) {
+		margin-left: auto;
+		color: var(--muted);
+	}
+
+	.quiet a:hover {
+		background: var(--surface-2);
 	}
 </style>

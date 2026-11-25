@@ -1,24 +1,24 @@
 <script lang="ts">
-	/** Reiter zum Umschalten zwischen den eigenen Themen (nur bei mehr als einem). */
+	/** Reiter mit den eigenen Themen: antippen öffnet das Thema. Punkt = noch etwas zu tun. */
 	let {
 		tabs,
-		current
+		current = null
 	}: {
 		tabs: { id: number; title: string; todo: boolean }[];
-		current: number;
+		current?: number | null;
 	} = $props();
 </script>
 
-{#if tabs.length > 1}
+{#if tabs.length}
 	<nav class="tabs" aria-label="Deine Themen">
 		{#each tabs as tab (tab.id)}
 			<a
-				href="?thema={tab.id}"
+				href="/themen/{tab.id}"
 				class:active={tab.id === current}
 				aria-current={tab.id === current ? 'page' : undefined}
 			>
 				{tab.title}
-				{#if tab.todo}<span class="dot" title="Hier ist etwas zu tun"></span>{/if}
+				{#if tab.todo}<span class="dot" title="Hier ist noch etwas zu tun"></span>{/if}
 			</a>
 		{/each}
 	</nav>
@@ -58,10 +58,10 @@
 
 	.dot {
 		display: inline-block;
-		width: 6px;
-		height: 6px;
+		width: 7px;
+		height: 7px;
 		margin-left: 6px;
-		vertical-align: 2px;
+		vertical-align: 1px;
 		border-radius: 50%;
 		background: var(--accent);
 	}

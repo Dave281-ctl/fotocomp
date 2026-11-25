@@ -170,6 +170,28 @@ export function formatWeekdayTime(date: Date): string {
 	return weekdayTimeFormat.format(date);
 }
 
+const shortWeekdayFormat = formatter({ weekday: 'short' });
+
+/** Frist kurz und menschlich: «bis 20:00 Uhr», «bis morgen 05:00 Uhr», «bis Di. 09:00 Uhr». */
+export function formatDeadline(deadline: Date, now: Date): string {
+	const time = formatTime(deadline);
+	const day = zurichParts(deadline).date;
+	const today = zurichParts(now).date;
+	if (day === today) return `bis ${time} Uhr`;
+	if (day === addDays(today, 1)) return `bis morgen ${time} Uhr`;
+	return `bis ${shortWeekdayFormat.format(deadline)} ${time} Uhr`;
+}
+
+/** Wann etwas passiert ist: «heute 05:00», «gestern 19:12», «Mo. 05:00». */
+export function formatWhen(date: Date, now: Date): string {
+	const time = formatTime(date);
+	const day = zurichParts(date).date;
+	const today = zurichParts(now).date;
+	if (day === today) return `heute ${time}`;
+	if (day === addDays(today, -1)) return `gestern ${time}`;
+	return `${shortWeekdayFormat.format(date)} ${time}`;
+}
+
 interface ThemeSummaryInput {
 	startDate: Day;
 	endDate: Day | null;

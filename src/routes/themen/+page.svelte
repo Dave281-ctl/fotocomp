@@ -1,130 +1,179 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { themeSummary } from '#lib/schedule.ts';
+	import { Check, Plus, Search } from '@lucide/svelte';
+	import ThemeTabs from '#lib/components/ThemeTabs.svelte';
+	import { formatShortDay } from '#lib/schedule.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const isMine = (id: number) => data.myThemeIds.includes(id);
+	let query = $state('');
+
+	/** Sofort beim Tippen filtern: Titel und Beschreibung, ohne Gross-/Kleinschreibung. */
+	const matches = (t: { title: string; description: string | null }) => {
+		const q = query.trim().toLowerCase();
+		return !q || `${t.title} ${t.description ?? ''}`.toLowerCase().includes(q);
+	};
+	const open = $derived(data.open.filter(matches));
+	const past = $derived(data.past.filter(matches));
+
+	const status = (t: (typeof data.open)[number]) =>
+		t.phase === 'upcoming'
+			? `startet ${formatShortDay(t.startDate)}`
+			: t.phase === 'ended'
+				? `beendet${t.endDate ? ` ${formatShortDay(t.endDate)}` : ''}`
+				: 'läuft';
 </script>
 
 <svelte:head><title>Themen · Fotocomp</title></svelte:head>
 
-<div class="page stack" style="--gap: 40px">
-	<div class="row" style="justify-content: space-between">
-		<div class="stack" style="--gap: 6px">
-			<p class="eyebrow">Themen</p>
-			<h1>Wähle deine Themen</h1>
-		</div>
-		{#if data.canCreate}<a class="btn" href="/themen/neu">Neues Thema</a>{/if}
+<div class="page stack" style="--gap: 28px">
+	<div class="stack" style="--gap: 14px">
+		<p class="eyebrow">Themen</p>
+		{#if data.tabs.length}
+			<ThemeTabs tabs={data.tabs} />
+		{:else}
+			<h1>Wähle ein Thema</h1>
+		{/if}
 	</div>
 
-	{#if data.open.length === 0}
+	<div class="row toolbar">
+		<label class="search">
+			<Search size={16} />
+			<input
+				type="search"
+				placeholder="Thema suchen …"
+				bind:value={query}
+				aria-label="Thema suchen"
+			/>
+		</label>
+		{#if data.canCreate}
+			<a class="btn" href="/themen/neu"><Plus size={16} /> Neues Thema</a>
+		{/if}
+	</div>
+
+	{#snippet card(t: (typeof data.open)[number])}
+		<a class="card theme" class:mine={t.mine} href="/themen/{t.id}">
+			<span class="head">
+				<strong>{t.title}</strong>
+				{#if t.mine}<span class="mine-badge"><Check size={13} /> dabei</span>{/if}
+			</span>
+			{#if t.description}<span class="desc">{t.description}</span>{/if}
+			<span class="meta">
+				<span class:running={t.phase !== 'upcoming' && t.phase !== 'ended'}>{status(t)}</span> · {t.members}
+				{t.members === 1 ? 'Teilnehmer' : 'Teilnehmende'}
+			</span>
+		</a>
+	{/snippet}
+
+	{#if open.length}
+		<div class="list">
+			{#each open as t (t.id)}{@render card(t)}{/each}
+		</div>
+	{:else if query}
+		<p class="muted">Kein Thema passt zu «{query}».</p>
+	{:else}
 		<p class="muted">Im Moment läuft kein Thema.</p>
 	{/if}
 
-	<div class="list">
-		{#each data.open as theme (theme.id)}
-			<!-- Die ganze Karte öffnet das Thema (Link über die Karte gespannt) -->
-			<article class="card stack theme" class:mine={isMine(theme.id)}>
-				<h2><a class="cover" href="/themen/{theme.id}">{theme.title}</a></h2>
-				{#if theme.description}<p class="description">{theme.description}</p>{/if}
-				<p class="muted small">
-					{themeSummary(theme).join(' · ')} · {theme.members}
-					{theme.members === 1 ? 'Teilnehmer' : 'Teilnehmende'}
-				</p>
-				<div class="row footer">
-					{#if isMine(theme.id)}
-						<span class="badge accent">Du machst mit</span>
-					{:else if theme.phase === 'upcoming'}
-						<span class="badge">Startet bald</span>
-					{:else}
-						<span></span>
-					{/if}
-					<form method="POST" use:enhance>
-						<input type="hidden" name="id" value={theme.id} />
-						{#if isMine(theme.id)}
-							<button class="btn ghost small" formaction="?/leave">Verlassen</button>
-						{:else}
-							<button class="btn primary small" formaction="?/join">Mitmachen</button>
-						{/if}
-					</form>
-				</div>
-			</article>
-		{/each}
-	</div>
-
-	{#if data.past.length}
-		<section class="stack">
-			<h2 class="muted">Vergangene Themen</h2>
-			{#each data.past as theme (theme.id)}
-				<a class="row past" href="/galerie?thema={theme.id}">
-					<span>{theme.title}</span>
-					<span class="muted small">{themeSummary(theme)[0]}</span>
-				</a>
-			{/each}
-		</section>
+	{#if past.length}
+		<details class="past" open={!!query}>
+			<summary class="muted">Beendete Themen ({past.length})</summary>
+			<div class="list">
+				{#each past as t (t.id)}{@render card(t)}{/each}
+			</div>
+		</details>
 	{/if}
 </div>
 
 <style>
-	.list {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-		gap: 16px;
+	.toolbar {
+		--gap: 10px;
 	}
 
+	.search {
+		flex: 1;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		padding: 0 14px;
+		border-radius: 999px;
+		background: var(--surface);
+		color: var(--muted);
+	}
+
+	.search:focus-within {
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.search input {
+		flex: 1;
+		min-width: 0;
+		padding: 11px 0;
+		border: 0;
+		background: none;
+		box-shadow: none;
+		outline: none;
+		color: var(--text);
+	}
+
+	.list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 10px;
+	}
+
+	/* Kompakte Karte: Titel, eine Zeile Beschreibung, Status */
 	.theme {
-		position: relative;
-		transition:
-			background 0.15s,
-			transform 0.15s;
+		display: grid;
+		gap: 4px;
+		padding: 14px 16px;
+		transition: background 0.15s;
 	}
 
 	.theme:hover {
 		background: var(--surface-2);
 	}
 
-	.card.mine {
-		outline: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+	.theme.mine {
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
 	}
 
-	/* Unsichtbare Fläche über der ganzen Karte */
-	.cover::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-	}
-
-	.cover:focus-visible {
-		outline: none;
-	}
-
-	.theme:has(.cover:focus-visible) {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
-
-	.description {
-		flex: 1;
-	}
-
-	/* Knöpfe liegen über der Fläche und bleiben eigenständig klickbar */
-	.footer {
-		position: relative;
-		z-index: 1;
+	.head {
+		display: flex;
 		justify-content: space-between;
-		margin-top: auto;
-		pointer-events: none;
+		align-items: baseline;
+		gap: 8px;
 	}
 
-	.footer > * {
-		pointer-events: auto;
+	.mine-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		flex: none;
+		font-size: 12px;
+		color: var(--accent);
 	}
 
-	.past {
-		justify-content: space-between;
-		padding: 12px 0;
-		border-bottom: 1px solid var(--line);
+	.desc {
+		font-size: 14px;
+		color: color-mix(in srgb, var(--text) 75%, var(--muted));
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.meta {
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.running {
+		color: var(--ok);
+	}
+
+	.past summary {
+		cursor: pointer;
+		margin-bottom: 12px;
+		font-size: 14px;
 	}
 </style>

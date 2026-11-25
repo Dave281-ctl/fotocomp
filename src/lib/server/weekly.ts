@@ -113,10 +113,21 @@ export async function getWeeklyResult(
 			badge: 'week' as const
 		}));
 
+	// Siegertreppchen: Plätze 1–3 mit Punkten (bei Gleichstand auch mehr Fotos)
+	const podium = ranking
+		.filter((r) => r.rank <= 3 && r.points > 0)
+		.sort((a, b) => a.rank - b.rank)
+		.map((r) => ({
+			...byId.get(r.photoId)!,
+			points: r.points,
+			place: r.rank,
+			badge: r.rank === 1 ? ('week' as const) : null
+		}));
+
 	const names = new Map(week.map((p) => [p.userId, p.userName]));
 	const photographers = rankPhotographers(
 		week.map((p) => ({ userId: p.userId!, average: p.average ?? 0 }))
 	).map((r) => ({ ...r, name: names.get(r.userId) ?? '' }));
 
-	return { voteDay, winners, photographers };
+	return { voteDay, winners, podium, photographers };
 }

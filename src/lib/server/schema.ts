@@ -40,6 +40,8 @@ export const users = pgTable('users', {
 	emailNotifications: boolean('email_notifications').notNull().default(true),
 	/** Mitteilungen pro Art und Kanal (Push/Mail); leer = Standard (siehe notify.ts). */
 	notify: jsonb('notify').$type<Partial<NotifyPrefs>>(),
+	/** Wann «Heute» zuletzt angesehen wurde – Neuigkeiten danach gelten als neu. */
+	newsSeenAt: timestamp('news_seen_at', { withTimezone: true }),
 	/** Gesetzt, sobald die Einführung abgeschlossen ist. */
 	onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
 	createdAt: createdAt()

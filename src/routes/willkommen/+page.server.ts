@@ -50,7 +50,7 @@ export const actions: Actions = {
 		}
 		if ((await getMemberships(user.id)).length === 0) await joinTheme(theme.id, user.id);
 		await finish(user.id);
-		redirect(303, `/?thema=${theme.id}`);
+		redirect(303, `/themen/${theme.id}`);
 	},
 
 	/** Noch kein Thema vorhanden: abschliessen, ggf. direkt ein Thema erstellen. */

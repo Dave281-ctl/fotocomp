@@ -1,44 +1,33 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { themePhase } from '#lib/schedule.ts';
 import { endRound, getCurrentRound, startManualRound } from '#lib/server/feedback.ts';
 import { now } from '#lib/server/time.ts';
 import {
 	canManageTheme,
 	endTheme,
-	getMembership,
 	getTheme,
-	joinTheme,
 	leaveTheme,
-	listMembers
+	listMembers,
+	themePhase
 } from '#lib/server/themes.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
-	const user = locals.user!;
+export const load: PageServerLoad = async ({ params }) => {
 	const theme = await getTheme(Number(params.id));
-	const membership = await getMembership(user.id, theme.id);
 	const t = now();
-	const phase = themePhase(theme, t).kind;
-	const round = phase === 'ended' ? null : await getCurrentRound(theme, t);
+	const ended = themePhase(theme, t).kind === 'ended';
+	const round = ended ? null : await getCurrentRound(theme, t);
 	return {
 		round,
 		roundActive: !!round && round.startsAt <= t,
-		theme,
-		phase,
-		members: await listMembers(theme.id),
-		isMine: !!membership,
-		canManage: canManageTheme(user, theme)
+		ended,
+		members: await listMembers(theme.id)
 	};
 };
 
 export const actions: Actions = {
-	join: async ({ params, locals }) => {
-		const theme = await getTheme(Number(params.id));
-		if (themePhase(theme, now()).kind === 'ended') return fail(400);
-		await joinTheme(theme.id, locals.user!.id);
-	},
 	leave: async ({ params, locals }) => {
 		await leaveTheme(Number(params.id), locals.user!.id);
+		redirect(303, '/themen');
 	},
 	startRound: async ({ params, request, locals }) => {
 		const theme = await getTheme(Number(params.id));
@@ -52,6 +41,7 @@ export const actions: Actions = {
 		const round = await getCurrentRound(theme, now());
 		const id = Number((await request.formData()).get('roundId'));
 		if (round?.id === id) await endRound(id);
+		else return fail(400);
 	},
 	end: async ({ params, locals }) => {
 		const theme = await getTheme(Number(params.id));

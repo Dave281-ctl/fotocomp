@@ -151,8 +151,8 @@ async function collectEvents(t: Date): Promise<ThemeEvent[]> {
 		const phase = themePhase(theme, t);
 		if (phase.kind === 'ended' || phase.kind === 'upcoming') continue;
 		const today = gameDay(t);
-		const path = `/?thema=${theme.id}`;
-		const base = { themeId: theme.id, path };
+		const themePath = `/themen/${theme.id}`;
+		const base = { themeId: theme.id, path: themePath };
 
 		// 20:00 – Bewertung offen (nur wenn es etwas zu bewerten gibt)
 		if (phase.kind === 'voting' && recent(at(today, VOTING_START_HOUR), t)) {
@@ -161,6 +161,7 @@ async function collectEvents(t: Date): Promise<ThemeEvent[]> {
 				events.push({
 					...base,
 					at: at(today, VOTING_START_HOUR),
+					path: `${themePath}/bewerten`,
 					key: `voting:${theme.id}:${today}`,
 					event: { kind: 'voting', theme: theme.title, photos: owners.length },
 					owners
@@ -176,6 +177,7 @@ async function collectEvents(t: Date): Promise<ThemeEvent[]> {
 			if (phase.kind === 'weekly') {
 				events.push({
 					...morning,
+					path: `${themePath}/wochenfoto`,
 					key: `weekly:${theme.id}:${today}`,
 					event: { kind: 'weekly', theme: theme.title }
 				});
@@ -207,7 +209,7 @@ async function collectEvents(t: Date): Promise<ThemeEvent[]> {
 			key: `feedback:${round.id}`,
 			at: round.startsAt,
 			themeId: theme.id,
-			path: `/feedback?thema=${theme.id}`,
+			path: `/themen/${theme.id}/feedback`,
 			event: { kind: 'feedback', theme: theme.title },
 			filter: async (userId) => (await getParticipation(round, userId)) !== false
 		});
@@ -372,7 +374,7 @@ async function uploadEvent(userId: number, t: Date) {
 		themes: open.map((o) => o.title),
 		until: formatTime(open[0].endsAt)
 	};
-	return [{ event, path: `/?thema=${open[0].id}` }];
+	return [{ event, path: `/themen/${open[0].id}/hochladen` }];
 }
 
 interface Person {

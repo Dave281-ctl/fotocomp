@@ -8,8 +8,8 @@
 
 	const items = $derived([
 		{ href: '/', label: 'Heute', icon: House },
-		{ href: '/galerie', label: 'Galerie', icon: Images },
 		{ href: '/themen', label: 'Themen', icon: Layers },
+		{ href: '/galerie', label: 'Galerie', icon: Images },
 		{ href: '/profil', label: 'Profil', icon: UserRound },
 		...(user.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: Shield }] : [])
 	]);
