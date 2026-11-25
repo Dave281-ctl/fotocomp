@@ -1,10 +1,11 @@
-import { and, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, lte, sql } from 'drizzle-orm';
 import { addDays, gameDay, isPhotoPublic, isRevealed, themePhase } from '../schedule.ts';
 import { dailyWinners, rankDaily, weeklyWinners } from '../scoring.ts';
 import { db } from './db.ts';
 import { photos, themes, users, votes, weeklyVotes, type Photo, type User } from './schema.ts';
 import { isMember } from './themes.ts';
 import type { FeedPhoto } from '../types.ts';
+import { groupByWeek, isWow, weekStart } from '../wow.ts';
 
 export type { FeedPhoto };
 
@@ -166,69 +167,55 @@ export async function getWinners(lastDay: string, now: Date) {
 	return badges;
 }
 
-export type GalleryView = 'sieger' | 'alle';
+/** So viele Wochen pro Seite; ältere lädt «Weitere Wochen». */
+const WOW_WEEKS = 4;
 
-export interface GalleryFilter {
-	view: GalleryView;
-	themeId: number | null;
-	userId: number | null;
-	/** Nur Tage vor diesem Datum (zum Nachladen). */
-	before?: string;
-}
+/**
+ * Galerie: die schönsten enthüllten Fotos aller Themen (siehe wow.ts),
+ * nach Woche gruppiert, neueste Woche zuerst.
+ * `before`: nur Wochen vor diesem Montag (zum Nachladen).
+ */
+export async function getWowGallery(viewerId: number, now: Date, before?: string) {
+	const lastDay = addDays(gameDay(now), -1);
+	const badges = await getWinners(lastDay, now);
 
-/** Galerie: enthüllte Fotos, neueste Tage zuerst, seitenweise und gefiltert. */
-export async function getGallery(viewerId: number, now: Date, filter: GalleryFilter) {
-	const pageDays = filter.view === 'sieger' ? 14 : 7;
-	// Enthüllt sind alle Tage vor dem laufenden Wettbewerbstag.
-	let lastDay = addDays(gameDay(now), -1);
-	if (filter.before && filter.before <= lastDay) lastDay = addDays(filter.before, -1);
-
-	const badges = await getWinners(addDays(gameDay(now), -1), now);
-	const where: SQL[] = [lte(photos.day, lastDay)];
-	if (filter.themeId) where.push(eq(photos.themeId, filter.themeId));
-	if (filter.userId) where.push(eq(photos.userId, filter.userId));
-	if (filter.view === 'sieger') {
-		if (badges.size === 0) return { days: [], more: null };
-		where.push(inArray(photos.id, [...badges.keys()]));
-	}
-
-	const dayRows = await db
-		.selectDistinct({ day: photos.day })
+	// Kandidaten: Sieger und gut bewertete Fotos
+	const stats = await db
+		.select({
+			id: photos.id,
+			day: photos.day,
+			average: sql<number | null>`avg(${votes.stars})::float`,
+			votes: sql<number>`count(${votes.stars})::int`
+		})
 		.from(photos)
-		.where(and(...where))
-		.orderBy(desc(photos.day))
-		.limit(pageDays + 1);
-	const days = dayRows.slice(0, pageDays).map((d) => d.day);
-	if (days.length === 0) return { days: [], more: null };
+		.leftJoin(votes, eq(votes.photoId, photos.id))
+		.where(lte(photos.day, lastDay))
+		.groupBy(photos.id);
+	const candidates = stats.filter((r) => isWow({ ...r, badge: badges.get(r.id) ?? null }));
+
+	const weeks = [...new Set(candidates.map((c) => weekStart(c.day)))]
+		.filter((w) => !before || w < before)
+		.sort()
+		.reverse();
+	const shown = new Set(weeks.slice(0, WOW_WEEKS));
+	const ids = candidates.filter((c) => shown.has(weekStart(c.day))).map((c) => c.id);
+	if (ids.length === 0) return { weeks: [], more: null };
 
 	const rows = await db
 		.select({ ...photoColumns, themeTitle: themes.title })
 		.from(photos)
 		.innerJoin(users, eq(photos.userId, users.id))
 		.innerJoin(themes, eq(photos.themeId, themes.id))
-		.where(and(...where, gte(photos.day, days[days.length - 1])));
+		.where(inArray(photos.id, ids));
 	const titles = new Map(rows.map((r) => [r.themeId, r.themeTitle]));
 	const decorated = (await decorate(rows, viewerId, now)).map((p) => ({
 		...p,
 		badge: badges.get(p.id) ?? null,
 		theme: { id: p.themeId, title: titles.get(p.themeId) ?? '' }
 	}));
-	// Innerhalb eines Tages: Wochenfotos und Tagessieger zuerst, dann nach Thema und Rang.
-	const order = (p: FeedPhoto) => (p.badge === 'week' ? 0 : p.badge === 'day' ? 1 : 2);
 	return {
-		days: days.map((day) => ({
-			day,
-			photos: decorated
-				.filter((p) => p.day === day)
-				.sort(
-					(a, b) =>
-						order(a) - order(b) ||
-						a.themeId - b.themeId ||
-						(a.rank ?? 99) - (b.rank ?? 99) ||
-						a.id - b.id
-				)
-		})),
-		more: dayRows.length > pageDays ? days[days.length - 1] : null
+		weeks: groupByWeek(decorated),
+		more: weeks.length > WOW_WEEKS ? weeks[WOW_WEEKS - 1] : null
 	};
 }
 

@@ -1,205 +1,192 @@
 <script lang="ts">
 	import Lightbox from '#lib/components/Lightbox.svelte';
-	import PhotoFeed from '#lib/components/PhotoFeed.svelte';
-	import { formatDay } from '#lib/schedule.ts';
+	import { photoSrc, photoSrcset } from '#lib/media.ts';
+	import { addDays, formatShortDay } from '#lib/schedule.ts';
+	import { WOW_MIN_STARS } from '#lib/wow.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
-	// Ein Vollbild über alle Fotos der Seite
-	const all = $derived(data.days.flatMap((d) => d.photos));
-	const offsets = $derived(
-		data.days.map((_, i) => data.days.slice(0, i).reduce((n, d) => n + d.photos.length, 0))
-	);
+	// Ein Vollbild über alle Fotos der Seite, in der angezeigten Reihenfolge
+	const all = $derived(data.weeks.flatMap((w) => w.photos));
 	let index = $state<number | null>(null);
+	const open = (photo: (typeof all)[number]) => (index = all.indexOf(photo));
 
-	/** Adresse mit geänderten Filtern (leere Werte fallen weg). */
-	function href(
-		change: Partial<{ ansicht: string; thema: number | null; person: number | null; bis: string }>
-	) {
-		const f = data.filter;
-		const values = {
-			ansicht: f.view === 'alle' ? 'alle' : '',
-			thema: f.themeId ?? '',
-			person: f.userId ?? '',
-			bis: '',
-			...change
-		};
-		const query = Object.entries(values)
-			.filter(([, v]) => v !== '' && v !== null)
-			.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
-			.join('&');
-		return `/galerie${query ? `?${query}` : ''}`;
-	}
-
-	const filtered = $derived(!!data.filter.themeId || !!data.filter.userId);
-	// Thema neben dem Namen nur zeigen, wenn nicht ohnehin nach Thema gefiltert
-	const themeHref = $derived(data.filter.themeId ? undefined : (id: number) => href({ thema: id }));
-
-	let form: HTMLFormElement;
+	const weekLabel = (monday: string) =>
+		`${formatShortDay(monday)} – ${formatShortDay(addDays(monday, 6))}`;
 </script>
 
 <svelte:head><title>Galerie · Fotocomp</title></svelte:head>
 
-<div class="page stack" style="--gap: 40px">
-	<div class="stack" style="--gap: 20px">
-		<div class="stack" style="--gap: 6px">
-			<p class="eyebrow">Galerie</p>
-			<h1>{data.filter.view === 'sieger' ? 'Die besten Fotos' : 'Alle Fotos'}</h1>
-		</div>
-
-		<!-- Filter als normales GET-Formular: funktioniert auch ohne JavaScript -->
-		<form class="filters" method="GET" bind:this={form}>
-			<div class="segment" role="radiogroup" aria-label="Ansicht">
-				<label>
-					<input
-						type="radio"
-						name="ansicht"
-						value=""
-						checked={data.filter.view === 'sieger'}
-						onchange={() => form.requestSubmit()}
-					/>
-					<span>Sieger</span>
-				</label>
-				<label>
-					<input
-						type="radio"
-						name="ansicht"
-						value="alle"
-						checked={data.filter.view === 'alle'}
-						onchange={() => form.requestSubmit()}
-					/>
-					<span>Alle</span>
-				</label>
-			</div>
-
-			<select
-				name="thema"
-				aria-label="Thema"
-				value={data.filter.themeId ?? ''}
-				onchange={() => form.requestSubmit()}
-			>
-				<option value="">Alle Themen</option>
-				{#each data.themes as theme (theme.id)}
-					<option value={theme.id}>{theme.title}</option>
-				{/each}
-			</select>
-
-			<select
-				name="person"
-				aria-label="Person"
-				value={data.filter.userId ?? ''}
-				onchange={() => form.requestSubmit()}
-			>
-				<option value="">Alle Personen</option>
-				{#each data.people as person (person.id)}
-					<option value={person.id}>{person.name}</option>
-				{/each}
-			</select>
-
-			<noscript><button class="btn small">Anzeigen</button></noscript>
-			{#if filtered}
-				<a class="reset muted small" href={href({ thema: null, person: null })}>
-					Filter zurücksetzen
-				</a>
-			{/if}
-		</form>
-	</div>
-
-	{#if data.days.length === 0}
-		<p class="muted">
-			{#if filtered}
-				Für diese Auswahl gibt es noch keine Fotos.
-			{:else if data.filter.view === 'sieger'}
-				Hier erscheinen die Tagessieger und Wochenfotos, sobald die ersten Resultate enthüllt sind
-				(jeweils um 05:00 Uhr).
-			{:else}
-				Hier erscheinen die Fotos, sobald die erste Tagesrunde enthüllt ist (jeweils um 05:00 Uhr).
-			{/if}
+<div class="page wide stack" style="--gap: 48px">
+	<header class="stack" style="--gap: 6px">
+		<p class="eyebrow">Galerie</p>
+		<h1>Die schönsten Fotos</h1>
+		<p class="muted small">
+			Wochenfotos, Tagessieger und alles ab {WOW_MIN_STARS} Sternen – aus allen Themen.
 		</p>
-	{/if}
+	</header>
 
-	{#each data.days as group, i (group.day)}
-		<section class="stack" style="--gap: 20px">
-			<h2 class="day">{formatDay(group.day)}</h2>
-			<PhotoFeed photos={group.photos} {themeHref} onopen={(j) => (index = offsets[i] + j)} />
+	{#each data.weeks as week (week.week)}
+		{@const [hero, ...rest] = week.photos}
+		<section class="stack" style="--gap: 14px">
+			<h2 class="week">{weekLabel(week.week)}</h2>
+
+			<!-- Das schönste Foto der Woche gross -->
+			<button class="hero" onclick={() => open(hero)} aria-label="Gross anzeigen">
+				<img
+					src={photoSrc(hero.id, 1200)}
+					srcset={photoSrcset(hero.id)}
+					sizes="(max-width: 1200px) 100vw, 1200px"
+					alt=""
+				/>
+				<span class="label">
+					{#if hero.badge}<span class="award">
+							{hero.badge === 'week' ? 'Wochenfoto' : 'Tagessieg'}
+						</span>{/if}
+					<span>{hero.userName} · {hero.theme?.title}</span>
+				</span>
+			</button>
+
+			<!-- Mosaik: Hoch- und Querformat gemischt, ohne Beschnitt -->
+			{#if rest.length}
+				<div class="mosaic">
+					{#each rest as photo (photo.id)}
+						<button
+							class="tile"
+							style="aspect-ratio: {photo.width} / {photo.height}"
+							onclick={() => open(photo)}
+							aria-label="Gross anzeigen"
+						>
+							<img src={photoSrc(photo.id, 1200)} alt="" loading="lazy" />
+							<span class="label">
+								{#if photo.badge}<span class="award">
+										{photo.badge === 'week' ? 'Wochenfoto' : 'Tagessieg'}
+									</span>{/if}
+								<span>{photo.userName} · {photo.theme?.title}</span>
+							</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
 		</section>
+	{:else}
+		<p class="muted">
+			Noch keine Fotos in der Galerie. Hier erscheinen die Sieger und die besten Fotos, sobald die
+			ersten Bewertungen enthüllt sind.
+		</p>
 	{/each}
 
 	{#if data.more}
-		<div>
-			<a class="btn" href={href({ bis: data.more })}>Ältere Tage</a>
-		</div>
+		<div class="more"><a class="btn" href="?bis={data.more}">Ältere Wochen</a></div>
 	{/if}
 </div>
-
 <Lightbox photos={all} bind:index />
 
 <style>
-	.filters {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 10px;
-	}
-
-	.filters select {
-		width: auto;
-		min-width: 160px;
-	}
-
-	/* Umschalter Sieger | Alle */
-	.segment {
-		display: inline-flex;
-		padding: 3px;
-		border-radius: 999px;
-		background: var(--surface);
-	}
-
-	.segment input {
-		position: absolute;
-		opacity: 0;
-		pointer-events: none;
-	}
-
-	.segment span {
-		display: block;
-		padding: 7px 16px;
-		border-radius: 999px;
-		font-size: 14px;
-		color: var(--muted);
-		cursor: pointer;
-		transition:
-			color 0.15s,
-			background 0.15s;
-	}
-
-	.segment input:checked + span {
-		color: var(--bg);
-		background: var(--text);
-	}
-
-	.segment input:focus-visible + span {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
-
-	.reset {
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-
-	.day {
+	.week {
+		margin: 0;
 		font-size: 15px;
 		font-weight: 500;
 		color: var(--muted);
-		letter-spacing: 0;
 	}
 
-	@media (max-width: 720px) {
-		.filters select {
-			flex: 1 1 140px;
-			min-width: 0;
+	button {
+		position: relative;
+		display: block;
+		width: 100%;
+		padding: 0;
+		border: 0;
+		background: var(--photo-bg);
+		cursor: zoom-in;
+		overflow: hidden;
+	}
+
+	.hero {
+		border-radius: var(--radius);
+	}
+
+	/* Das Titelbild immer ganz zeigen, auch im Hochformat */
+	.hero img {
+		display: block;
+		width: 100%;
+		max-height: 80vh;
+		object-fit: contain;
+	}
+
+	.mosaic {
+		columns: 3 260px;
+		column-gap: 10px;
+	}
+
+	@media (max-width: 600px) {
+		.mosaic {
+			columns: 2;
+			column-gap: 6px;
 		}
+
+		.tile {
+			margin-bottom: 6px;
+		}
+	}
+
+	.tile {
+		margin-bottom: 10px;
+		border-radius: var(--radius-sm);
+		break-inside: avoid;
+	}
+
+	.tile img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.4s;
+	}
+
+	.tile:hover img {
+		transform: scale(1.03);
+	}
+
+	/* Name und Thema dezent, erst beim Darüberfahren deutlich */
+	.label {
+		position: absolute;
+		inset: auto 0 0 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 10px;
+		padding: 28px 14px 12px;
+		font-size: 13px;
+		color: #fff;
+		text-align: left;
+		background: linear-gradient(to top, rgb(0 0 0 / 0.6), transparent);
+		opacity: 0;
+		transition: opacity 0.25s;
+	}
+
+	.hero .label {
+		opacity: 1;
+		font-size: 14px;
+	}
+
+	button:hover .label,
+	button:focus-visible .label {
+		opacity: 1;
+	}
+
+	.award {
+		padding: 2px 8px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--accent-text);
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+	}
+
+	.more {
+		text-align: center;
 	}
 </style>
