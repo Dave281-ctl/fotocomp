@@ -37,7 +37,7 @@
 	</div>
 
 	{#if showInstall}
-		<section class="card stack install" style="--gap: 14px">
+		<section id="installieren" class="card stack install" style="--gap: 14px">
 			<div class="row" style="--gap: 10px">
 				<Smartphone size={18} />
 				<strong>Fotocomp als App installieren</strong>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ChevronRight, CircleCheck } from '@lucide/svelte';
+	import InstallHint from '#lib/components/InstallHint.svelte';
 	import NewsList from '#lib/components/NewsList.svelte';
 	import TaskList from '#lib/components/TaskList.svelte';
 	import type { PageProps } from './$types';
@@ -27,6 +28,8 @@
 		<p class="eyebrow">{data.day}</p>
 		<h1>Heute</h1>
 	</header>
+
+	<InstallHint />
 
 	{#if !data.groups.length && !data.chatNews.length}
 		<div class="stack empty" style="--gap: 16px">

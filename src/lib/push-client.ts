@@ -14,6 +14,32 @@ export function platform(): Platform {
 	return 'other';
 }
 
+/**
+ * Welcher Browser auf dem iPhone? Installieren geht zuverlässig nur in Safari.
+ * Chrome, Firefox, Edge & Co. sowie die eingebauten Browser von Instagram,
+ * Facebook usw. geben sich zu erkennen; WhatsApp leider nicht (meldet sich wie Safari).
+ */
+export function iosBrowser(ua = navigator.userAgent): { safari: boolean; name: string } {
+	const browsers: [RegExp, string][] = [
+		[/CriOS/, 'Chrome'],
+		[/FxiOS/, 'Firefox'],
+		[/EdgiOS/, 'Edge'],
+		[/OPiOS|OPT\//, 'Opera'],
+		[/DuckDuckGo/, 'DuckDuckGo'],
+		[/GSA\//, 'der Google-App'],
+		[/Instagram/, 'Instagram'],
+		[/FBAN|FBAV/, 'Facebook'],
+		[/Snapchat/, 'Snapchat'],
+		[/LinkedInApp/, 'LinkedIn'],
+		[/Line\//, 'LINE']
+	];
+	const hit = browsers.find(([re]) => re.test(ua));
+	return hit ? { safari: false, name: hit[1] } : { safari: true, name: 'Safari' };
+}
+
+/** Link, der dieselbe Seite in Safari öffnet (von Apple nicht dokumentiert, klappt aber meist). */
+export const safariLink = (url: string) => `x-safari-${url}`;
+
 /** Läuft Fotocomp als installierte App (vom Home-Bildschirm)? */
 export function isStandalone() {
 	return (
