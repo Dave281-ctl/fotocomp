@@ -8,6 +8,7 @@ export const load: PageServerLoad = ({ locals }) => {
 	const u = locals.user!;
 	return {
 		profile: {
+			id: u.id,
 			name: u.name,
 			email: u.email,
 			feedbackDefault: u.feedbackDefault,

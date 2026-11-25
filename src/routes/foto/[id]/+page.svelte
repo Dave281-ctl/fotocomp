@@ -77,9 +77,11 @@
 
 			{#if photo.userName}
 				<div class="row" style="--gap: 12px">
-					<Avatar name={photo.userName} id={photo.userId} size={36} />
+					<a href="/person/{photo.userId}" aria-hidden="true" tabindex="-1">
+						<Avatar name={photo.userName} id={photo.userId} size={36} />
+					</a>
 					<div>
-						<div class="name">{photo.userName}</div>
+						<a class="name" href="/person/{photo.userId}">{photo.userName}</a>
 						{#if photo.rank}<div class="muted small">
 								{photo.rank === 1 ? 'Tagessieg' : `${photo.rank}. Platz`}
 							</div>{/if}
@@ -260,7 +262,12 @@
 	}
 
 	.name {
+		display: block;
 		font-weight: 500;
+	}
+
+	.name:hover {
+		text-decoration: underline;
 	}
 
 	.score {

@@ -29,7 +29,12 @@
 		{#if data.members.length}
 			<ul class="members">
 				{#each data.members as m (m.id)}
-					<li class="row"><Avatar name={m.name} id={m.id} size={28} /> {m.name}</li>
+					<li>
+						<a class="row" href="/person/{m.id}">
+							<Avatar name={m.name} id={m.id} size={28} />
+							{m.name}
+						</a>
+					</li>
 				{/each}
 			</ul>
 		{:else}
@@ -125,8 +130,13 @@
 		list-style: none;
 	}
 
-	.members li {
+	.members a {
 		--gap: 10px;
+		width: fit-content;
+	}
+
+	.members a:hover {
+		text-decoration: underline;
 	}
 
 	.actions {

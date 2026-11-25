@@ -29,10 +29,10 @@
 		</div>
 		{#if theme.description}<p class="lead">{theme.description}</p>{/if}
 		{#if data.members.length}
-			<div class="row members" title={data.members.map((m) => m.name).join(', ')}>
+			<div class="row members">
 				<span class="avatars">
 					{#each data.members.slice(0, MAX_AVATARS) as m (m.id)}
-						<Avatar name={m.name} id={m.id} size={26} />
+						<a href="/person/{m.id}" title={m.name}><Avatar name={m.name} id={m.id} size={26} /></a>
 					{/each}
 				</span>
 				<span class="muted small">
@@ -127,7 +127,9 @@
 		display: flex;
 	}
 
-	.avatars > :global(*) {
+	.avatars > a {
+		display: flex;
+		border-radius: 50%;
 		box-shadow: 0 0 0 2px var(--bg);
 	}
 

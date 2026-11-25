@@ -73,7 +73,7 @@
 					<Stars value={photo.myStars} onrate={(s) => onrate?.(photo, s)} />
 				{:else if photo.userName}
 					<div class="who">
-						<a class="person" href="/foto/{photo.id}">
+						<a class="person" href={photo.userId ? `/person/${photo.userId}` : `/foto/${photo.id}`}>
 							<Avatar name={photo.userName} id={photo.userId} />
 							<span>{photo.isOwn ? `${photo.userName} (du)` : photo.userName}</span>
 						</a>

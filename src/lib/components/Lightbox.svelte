@@ -282,7 +282,11 @@
 			{#if voting && !photo.isOwn}
 				<Stars value={photo.myStars} size={26} onrate={(s) => onrate?.(photo, s)} />
 			{:else if photo.userName}
-				<span>{photo.userName}</span>
+				{#if photo.userId}
+					<a class="who" href="/person/{photo.userId}" onclick={close}>{photo.userName}</a>
+				{:else}
+					<span>{photo.userName}</span>
+				{/if}
 				{#if photo.theme}<span class="dim">{photo.theme.title}</span>{/if}
 				{#if photo.badge}
 					<span class="dim">{photo.badge === 'week' ? 'Wochenfoto' : 'Tagessieg'}</span>
@@ -350,6 +354,14 @@
 		min-height: 64px;
 		padding-bottom: max(12px, env(safe-area-inset-bottom));
 		font-size: 15px;
+	}
+
+	.who {
+		color: inherit;
+	}
+
+	.who:hover {
+		text-decoration: underline;
 	}
 
 	.count,

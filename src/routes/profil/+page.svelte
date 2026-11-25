@@ -5,6 +5,7 @@
 		Bell,
 		ChevronRight,
 		CircleHelp,
+		Images,
 		LogOut,
 		Smartphone,
 		SunMoon,
@@ -79,6 +80,11 @@
 
 	<!-- Einstellungen als Liste: jede Zeile ist als Ganzes klickbar -->
 	<div class="list">
+		<a class="item" href="/person/{data.profile.id}">
+			<Images size={18} />
+			<span>Meine Seite</span>
+			<ChevronRight size={18} class="chevron" />
+		</a>
 		<a class="item" href="/profil/mitteilungen">
 			<Bell size={18} />
 			<span>Mitteilungen</span>

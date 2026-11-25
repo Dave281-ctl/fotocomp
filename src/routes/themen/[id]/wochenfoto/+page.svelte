@@ -76,7 +76,7 @@
 				{#each result.photographers as p (p.userId)}
 					<li>
 						<span class="rank">{p.rank}.</span>
-						<span>{p.name}</span>
+						<a href="/person/{p.userId}">{p.name}</a>
 						<span class="muted small">{p.total.toFixed(1)} ★ aus {p.days} Tagen</span>
 					</li>
 				{/each}

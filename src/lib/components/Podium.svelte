@@ -29,7 +29,7 @@
 				<img src={photoSrc(photo.id, 1200)} alt="" loading="lazy" />
 			</button>
 			<div class="caption">
-				<strong>{photo.userName}</strong>
+				<a class="who" href="/person/{photo.userId}"><strong>{photo.userName}</strong></a>
 				<span class="muted">
 					{photo.points !== undefined
 						? `${photo.points} ${photo.points === 1 ? 'Punkt' : 'Punkte'}`
@@ -104,6 +104,10 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.who:hover {
+		text-decoration: underline;
 	}
 
 	/* Die Stufen: 1 am höchsten, in Gold */
