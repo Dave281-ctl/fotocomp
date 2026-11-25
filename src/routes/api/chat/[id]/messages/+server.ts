@@ -6,7 +6,9 @@ import type { RequestHandler } from './$types';
 /** Ältere Nachrichten nachladen: ?vor=<id> */
 export const GET: RequestHandler = async ({ params, url, locals }) => {
 	const { chat } = await requireChat(Number(params.id), locals.user!);
-	return apiCall(() => loadMessages(chat.id, Number(url.searchParams.get('vor')) || undefined));
+	return apiCall(() =>
+		loadMessages(chat.id, locals.user!.id, Number(url.searchParams.get('vor')) || undefined)
+	);
 };
 
 /** Senden: { body, replyToId, mentionIds } */

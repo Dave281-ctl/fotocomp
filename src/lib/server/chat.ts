@@ -11,6 +11,7 @@
  */
 import { error } from '@sveltejs/kit';
 import { and, desc, eq, gt, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import {
 	MAX_MESSAGE_LENGTH,
 	adminRetention,
@@ -31,8 +32,11 @@ import { db } from './db.ts';
 import { sendPush } from './push.ts';
 import {
 	chatMembers,
+	chatFavorites,
 	chatMutes,
 	chatReads,
+	hiddenMessages,
+	messagePins,
 	chats,
 	messageMentions,
 	messageReactions,
@@ -48,10 +52,26 @@ import { UserError } from './errors.ts';
 
 export const HELP_TITLE = 'Hilfe & Fragen';
 const PAGE = 50;
+export const MAX_FAVORITES = 3;
+export const MAX_PINS = 3;
+export const PIN_HOURS = [1, 12, 24, 72] as const;
+
+/**
+ * Nur Nachrichten, die diese Person sehen soll: nicht «für mich gelöscht» und
+ * nicht vor dem Zeitpunkt, an dem sie den Chat für sich geleert hat.
+ */
+const visibleTo = (userId: number) =>
+	and(
+		sql`not exists (select 1 from hidden_messages h where h.message_id = ${messages.id} and h.user_id = ${userId})`,
+		sql`${messages.id} > coalesce((select r.cleared_up_to from chat_reads r where r.chat_id = ${messages.chatId} and r.user_id = ${userId}), 0)`
+	);
 
 // --------------------------------------------------------------- Chats finden
 
 async function getOrCreate(key: string, kind: ChatKind, themeId: number | null = null) {
+	// Erst nachsehen: Ein vergeblicher Einfügeversuch würde eine ID verbrauchen
+	const [found] = await db.select().from(chats).where(eq(chats.key, key));
+	if (found) return found;
 	await db.insert(chats).values({ key, kind, themeId }).onConflictDoNothing();
 	const [chat] = await db.select().from(chats).where(eq(chats.key, key));
 	return chat;
@@ -188,15 +208,23 @@ export async function listChats(user: User): Promise<ChatSummary[]> {
 		})
 		.from(messages)
 		.innerJoin(users, eq(messages.authorId, users.id))
-		.where(inArray(messages.chatId, ids))
+		.where(and(inArray(messages.chatId, ids), visibleTo(user.id)))
 		.orderBy(messages.chatId, desc(messages.id));
 	const last = new Map(lastRows.map((r) => [r.chatId, r]));
 	const unread = await unreadCounts(user, ids);
 	const mutes = await mutedChats(user.id, ids);
+	const favorites = new Map(
+		(
+			await db
+				.select()
+				.from(chatFavorites)
+				.where(and(eq(chatFavorites.userId, user.id), inArray(chatFavorites.chatId, ids)))
+		).map((f) => [f.chatId, f.createdAt.getTime()])
+	);
 	const t = new Date();
 
 	const result = list
-		// Einzelchats ohne Nachricht (nur geöffnet) nicht anzeigen
+		// Einzelchats ohne (sichtbare) Nachricht nicht anzeigen – auch nach «für mich löschen»
 		.filter((c) => c.kind !== 'direct' || last.has(c.id))
 		.map((c): ChatSummary => {
 			const person = others.find((o) => o.chatId === c.id) ?? null;
@@ -224,12 +252,16 @@ export async function listChats(user: User): Promise<ChatSummary[]> {
 				unread: unread.get(c.id)?.count ?? 0,
 				mentioned: unread.get(c.id)?.mentioned ?? false,
 				muted: mutes.has(c.id),
+				favorite: favorites.has(c.id),
 				readOnly: c.kind === 'theme' && !!theme && !isThemeOpen(theme, t)
 			};
 		});
+	// Favoriten oben (in der Reihenfolge des Anheftens), dann nach letzter Nachricht
 	return result.sort(
 		(a, b) =>
-			(b.last?.at.getTime() ?? 0) - (a.last?.at.getTime() ?? 0) || a.title.localeCompare(b.title)
+			(favorites.get(a.id) ?? Infinity) - (favorites.get(b.id) ?? Infinity) ||
+			(b.last?.at.getTime() ?? 0) - (a.last?.at.getTime() ?? 0) ||
+			a.title.localeCompare(b.title)
 	);
 }
 
@@ -253,7 +285,8 @@ async function unreadCounts(user: User, chatIds: number[]) {
 				inArray(messages.chatId, chatIds),
 				ne(messages.authorId, user.id),
 				isNull(messages.deletedAt),
-				or(isNull(chatReads.lastReadId), gt(messages.id, chatReads.lastReadId))
+				or(isNull(chatReads.lastReadId), gt(messages.id, chatReads.lastReadId)),
+				visibleTo(user.id)
 			)
 		)
 		.groupBy(messages.chatId);
@@ -303,12 +336,18 @@ export async function chatHeader(chat: Chat, user: User) {
 // --------------------------------------------------------------- Nachrichten laden
 
 /** Nachrichten eines Chats, die neuesten `PAGE`, bzw. die davor (`before`). Älteste zuerst. */
-export async function loadMessages(chatId: number, before?: number) {
+export async function loadMessages(chatId: number, userId: number, before?: number) {
 	const rows = await db
 		.select({ m: messages, name: users.name, role: users.role })
 		.from(messages)
 		.innerJoin(users, eq(messages.authorId, users.id))
-		.where(and(eq(messages.chatId, chatId), before ? lt(messages.id, before) : undefined))
+		.where(
+			and(
+				eq(messages.chatId, chatId),
+				before ? lt(messages.id, before) : undefined,
+				visibleTo(userId)
+			)
+		)
 		.orderBy(desc(messages.id))
 		.limit(PAGE + 1);
 	const more = rows.length > PAGE;
@@ -573,7 +612,9 @@ export async function deleteMessage(messageId: number, user: User) {
 		await tx.update(messages).set({ deletedAt: new Date(), body: '' }).where(eq(messages.id, m.id));
 		await tx.delete(messageReactions).where(eq(messageReactions.messageId, m.id));
 		await tx.delete(messageMentions).where(eq(messageMentions.messageId, m.id));
+		await tx.delete(messagePins).where(eq(messagePins.messageId, m.id));
 	});
+	await broadcastPins(chat);
 	return broadcastUpdate(chat, m.id);
 }
 
@@ -666,9 +707,141 @@ export async function recentMentions(user: User, since: Date) {
 				eq(messageMentions.userId, user.id),
 				gt(messages.createdAt, since),
 				isNull(messages.deletedAt),
-				or(isNull(chatReads.lastReadId), gt(messages.id, chatReads.lastReadId))
+				or(isNull(chatReads.lastReadId), gt(messages.id, chatReads.lastReadId)),
+				visibleTo(user.id)
 			)
 		)
 		.orderBy(desc(messages.id))
 		.limit(10);
+}
+
+// --------------------------------------------------------------- Für mich löschen
+
+/** Nachricht nur im eigenen Verlauf ausblenden (die anderen sehen sie weiter). */
+export async function hideMessage(messageId: number, user: User) {
+	const { m } = await messageInChat(messageId, user);
+	await db
+		.insert(hiddenMessages)
+		.values({ messageId: m.id, userId: user.id })
+		.onConflictDoNothing();
+	publish([user.id], { type: 'unread' });
+	return { id: m.id };
+}
+
+/**
+ * Einzelchat für mich löschen: Der bisherige Verlauf verschwindet nur für mich,
+ * der Chat aus meiner Liste. Neue Nachrichten lassen ihn wieder erscheinen.
+ */
+export async function clearChat(chatId: number, user: User) {
+	const { chat } = await requireChat(chatId, user);
+	if (chat.kind !== 'direct') throw new UserError('Nur Einzelchats lassen sich löschen.');
+	const [last] = await db
+		.select({ id: messages.id })
+		.from(messages)
+		.where(eq(messages.chatId, chat.id))
+		.orderBy(desc(messages.id))
+		.limit(1);
+	const upTo = last?.id ?? 0;
+	await db
+		.insert(chatReads)
+		.values({ chatId: chat.id, userId: user.id, lastReadId: upTo, clearedUpTo: upTo })
+		.onConflictDoUpdate({
+			target: [chatReads.chatId, chatReads.userId],
+			set: { clearedUpTo: upTo, lastReadId: sql`greatest(${chatReads.lastReadId}, ${upTo})` }
+		});
+	await db
+		.delete(chatFavorites)
+		.where(and(eq(chatFavorites.chatId, chat.id), eq(chatFavorites.userId, user.id)));
+	publish([user.id], { type: 'unread' });
+}
+
+// --------------------------------------------------------------- Favoriten
+
+/** Chat oben anheften (höchstens 3) oder wieder lösen. */
+export async function setFavorite(chatId: number, user: User, on: boolean) {
+	const { chat } = await requireChat(chatId, user);
+	if (!on) {
+		await db
+			.delete(chatFavorites)
+			.where(and(eq(chatFavorites.chatId, chat.id), eq(chatFavorites.userId, user.id)));
+		return;
+	}
+	const current = await db.select().from(chatFavorites).where(eq(chatFavorites.userId, user.id));
+	if (current.some((f) => f.chatId === chat.id)) return;
+	if (current.length >= MAX_FAVORITES) {
+		throw new UserError(`Höchstens ${MAX_FAVORITES} Favoriten. Löse zuerst einen anderen.`);
+	}
+	await db.insert(chatFavorites).values({ chatId: chat.id, userId: user.id });
+}
+
+// --------------------------------------------------------------- Angeheftete Nachrichten
+
+export async function getPins(chatId: number, userId?: number) {
+	const pinner = alias(users, 'pinner');
+	const rows = await db
+		.select({
+			messageId: messagePins.messageId,
+			until: messagePins.until,
+			body: messages.body,
+			author: users.name,
+			pinnedBy: pinner.name
+		})
+		.from(messagePins)
+		.innerJoin(messages, eq(messagePins.messageId, messages.id))
+		.innerJoin(users, eq(messages.authorId, users.id))
+		.innerJoin(pinner, eq(messagePins.pinnedBy, pinner.id))
+		.where(
+			and(
+				eq(messagePins.chatId, chatId),
+				gt(messagePins.until, new Date()),
+				isNull(messages.deletedAt),
+				userId ? visibleTo(userId) : undefined
+			)
+		)
+		.orderBy(desc(messagePins.createdAt));
+	return rows.map((r) => ({
+		messageId: r.messageId,
+		until: r.until,
+		author: r.author,
+		excerpt: chatExcerpt(r.body, 90),
+		pinnedBy: r.pinnedBy
+	}));
+}
+
+async function broadcastPins(chat: Chat) {
+	const people = await chatPeople(chat);
+	publish(
+		people.map((p) => p.id),
+		{ type: 'pins', chatId: chat.id, pins: await getPins(chat.id) }
+	);
+}
+
+/** Anheften für alle im Chat (1, 12, 24 oder 72 Stunden) bzw. lösen (hours = 0). */
+export async function pinMessage(messageId: number, user: User, hours: number) {
+	const { m, chat, write } = await messageInChat(messageId, user);
+	if (!write || m.deletedAt) throw new UserError('Hier kannst du nichts anheften.', 403);
+	if (hours === 0) {
+		await db.delete(messagePins).where(eq(messagePins.messageId, m.id));
+	} else {
+		if (!PIN_HOURS.includes(hours as never)) throw new UserError('Ungültige Dauer.');
+		const until = new Date(Date.now() + hours * 3_600_000);
+		await db
+			.insert(messagePins)
+			.values({ messageId: m.id, chatId: chat.id, pinnedBy: user.id, until })
+			.onConflictDoUpdate({
+				target: messagePins.messageId,
+				set: { until, pinnedBy: user.id, createdAt: new Date() }
+			});
+		// Abgelaufene weg, dann höchstens 3 – die älteste Anheftung fällt raus
+		await db.delete(messagePins).where(lt(messagePins.until, new Date()));
+		const all = await db
+			.select({ id: messagePins.messageId })
+			.from(messagePins)
+			.where(eq(messagePins.chatId, chat.id))
+			.orderBy(desc(messagePins.createdAt));
+		const tooMany = all.slice(MAX_PINS).map((p) => p.id);
+		if (tooMany.length) await db.delete(messagePins).where(inArray(messagePins.messageId, tooMany));
+	}
+	await broadcastPins(chat);
+	return getPins(chat.id, user.id);
 }

@@ -3,10 +3,11 @@
  * Sie trennt sich, wenn die App im Hintergrund ist, und verbindet sich beim
  * Zurückkehren neu – dann holen offene Chats Verpasstes nach.
  */
-import type { ChatMessage } from './types.ts';
+import type { ChatMessage, ChatPin } from './types.ts';
 
 export type LiveEvent =
 	| { type: 'message' | 'update'; chatId: number; message: ChatMessage }
+	| { type: 'pins'; chatId: number; pins: ChatPin[] }
 	| { type: 'unread' }
 	| { type: 'reconnected' };
 
@@ -47,6 +48,11 @@ function connect() {
 		if (event.type === 'message' || event.type === 'update') {
 			emit({ ...event, message: revive(event.message) });
 			if (event.type === 'message' && event.chatId !== openChat) refreshUnread();
+		} else if (event.type === 'pins') {
+			emit({
+				...event,
+				pins: event.pins.map((p: ChatPin) => ({ ...p, until: new Date(p.until) }))
+			});
 		} else if (event.type === 'unread') {
 			refreshUnread();
 		}

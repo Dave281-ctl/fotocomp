@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ChevronRight, CircleCheck, MessageCircle } from '@lucide/svelte';
+	import { ChevronLeft, ChevronRight, CircleCheck, MessageCircle } from '@lucide/svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Podium from '#lib/components/Podium.svelte';
 	import TaskList from '#lib/components/TaskList.svelte';
@@ -18,7 +18,10 @@
 <svelte:head><title>{theme.title} · Fotocomp</title></svelte:head>
 
 <div class="page stack" style="--gap: 32px">
-	<ThemeTabs tabs={data.tabs} current={theme.id} />
+	<div class="stack" style="--gap: 12px">
+		<a class="all row muted small" href="/themen"><ChevronLeft size={16} /> Alle Themen</a>
+		<ThemeTabs tabs={data.tabs} current={theme.id} />
+	</div>
 
 	<header class="stack" style="--gap: 10px">
 		<div class="row title">
@@ -110,6 +113,16 @@
 	.title {
 		justify-content: space-between;
 		align-items: baseline;
+	}
+
+	.all {
+		--gap: 2px;
+		width: fit-content;
+		margin-left: -4px;
+	}
+
+	.all:hover {
+		color: var(--text);
 	}
 
 	.links {

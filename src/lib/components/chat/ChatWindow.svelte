@@ -7,13 +7,16 @@
 		Copy,
 		Layers,
 		LifeBuoy,
+		Pin,
+		PinOff,
 		Reply,
-		Trash2
+		Trash2,
+		X
 	} from '@lucide/svelte';
 	import { QUICK_REACTIONS, retentionLabel } from '../../chat-rules.ts';
-	import { onLive, refreshUnread, setOpenChat } from '../../chat-live.svelte.ts';
+	import { onLive, refreshUnread, setOpenChat } from '#lib/chat-live.svelte.ts';
 	import { formatDay, zurichParts } from '../../schedule.ts';
-	import type { ChatMessage } from '../../types.ts';
+	import type { ChatMessage, ChatPin } from '../../types.ts';
 	import Avatar from '../Avatar.svelte';
 	import ChatBubble from './ChatBubble.svelte';
 	import ChatComposer from './ChatComposer.svelte';
@@ -27,6 +30,7 @@
 		lastRead: number;
 		write: boolean;
 		muted: boolean;
+		pins: ChatPin[];
 		retention: { adminDays: number; ownDays: number };
 		me: { id: number; isAdmin: boolean };
 	}
@@ -38,6 +42,11 @@
 	let more = $state(props.more);
 	// svelte-ignore state_referenced_locally
 	let muted = $state(props.muted);
+	// svelte-ignore state_referenced_locally
+	let pins = $state<ChatPin[]>(props.pins);
+	let pinIndex = $state(0);
+	let pinMenu = $state(false);
+	let deleting = $state<ChatMessage | null>(null);
 	let replyTo = $state<ChatMessage | null>(null);
 	let menu = $state<ChatMessage | null>(null);
 	let allEmojis = $state(false);
@@ -72,10 +81,11 @@
 		}).then(refreshUnread);
 	}
 
-	function upsert(m: ChatMessage) {
+	/** Nachricht einfügen oder ersetzen; `onlyExisting`: nur ersetzen (z.B. «für mich gelöscht» bleibt weg). */
+	function upsert(m: ChatMessage, onlyExisting = false) {
 		const i = messages.findIndex((x) => x.id === m.id);
 		if (i >= 0) messages[i] = m;
-		else messages = [...messages, m].sort((a, b) => a.id - b.id);
+		else if (!onlyExisting) messages = [...messages, m].sort((a, b) => a.id - b.id);
 	}
 
 	/** Nach einer Unterbrechung (App im Hintergrund): die neuesten Nachrichten neu holen. */
@@ -102,8 +112,14 @@
 		const off = onLive(async (e) => {
 			if (e.type === 'reconnected') return resync();
 			if (e.type === 'unread' || e.chatId !== props.chat.id) return;
+			if (e.type === 'pins') {
+				// Nur Anheftungen von Nachrichten, die ich auch sehe (nicht «für mich gelöscht»)
+				pins = e.pins.filter((p) => !hidden.has(p.messageId));
+				pinIndex = 0;
+				return;
+			}
 			const stick = nearBottom() || e.message.author.id === props.me.id;
-			upsert(e.message);
+			upsert(e.message, e.type === 'update');
 			if (e.type === 'message') {
 				if (stick) await scrollToBottom();
 				markRead();
@@ -181,15 +197,55 @@
 		}
 	}
 
-	async function remove(m: ChatMessage) {
+	/** Löschen fragt: nur für mich oder (bei eigenen Nachrichten) für alle. */
+	function askDelete(m: ChatMessage) {
 		menu = null;
-		if (!confirm('Nachricht für alle löschen?')) return;
+		deleting = m;
+	}
+
+	// In dieser Sitzung «für mich gelöscht» (für Anheftungen, die per Echtzeit kommen)
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- nur intern
+	const hidden = new Set<number>();
+
+	async function deleteForMe(m: ChatMessage) {
+		deleting = null;
+		const res = await fetch(`/api/chat/nachricht/${m.id}/ausblenden`, { method: 'POST' });
+		if (res.ok) {
+			hidden.add(m.id);
+			messages = messages.filter((x) => x.id !== m.id);
+			pins = pins.filter((p) => p.messageId !== m.id);
+		}
+	}
+
+	async function deleteForAll(m: ChatMessage) {
+		deleting = null;
 		const res = await fetch(`/api/chat/nachricht/${m.id}`, { method: 'DELETE' });
 		if (res.ok) {
 			const data = await res.json();
 			upsert({ ...data, createdAt: new Date(data.createdAt) });
 		}
 	}
+
+	/** Für alle oben anheften (Stunden) bzw. lösen (0). */
+	async function pin(m: ChatMessage, hours: number) {
+		menu = null;
+		pinMenu = false;
+		const res = await fetch(`/api/chat/nachricht/${m.id}/anheften`, {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ hours })
+		});
+		const data = await res.json().catch(() => null);
+		if (!res.ok) {
+			error = data?.error ?? 'Das hat nicht geklappt.';
+			return;
+		}
+		pins = data.map((p: ChatPin) => ({ ...p, until: new Date(p.until) }));
+		pinIndex = 0;
+	}
+
+	const isPinned = (m: ChatMessage) => pins.some((p) => p.messageId === m.id);
+	const currentPin = $derived(pins.length ? pins[pinIndex % pins.length] : null);
 
 	function reply(m: ChatMessage) {
 		menu = null;
@@ -274,6 +330,41 @@
 		</div>
 	</header>
 
+	<!-- Angeheftete Nachrichten: antippen springt hin (und zur nächsten), ✕ löst -->
+	{#if currentPin}
+		<div class="pins">
+			<button
+				class="pin-main"
+				onclick={() => {
+					jumpTo(currentPin.messageId);
+					pinIndex = (pinIndex + 1) % pins.length;
+				}}
+			>
+				<Pin size={15} />
+				<span class="pin-text">
+					<strong>{currentPin.author}:</strong>
+					{currentPin.excerpt}
+				</span>
+				{#if pins.length > 1}<span class="pin-count">
+						{(pinIndex % pins.length) + 1}/{pins.length}
+					</span>{/if}
+			</button>
+			{#if props.write}
+				<button
+					class="pin-off"
+					onclick={() => {
+						const m = messages.find((x) => x.id === currentPin.messageId);
+						if (m) void pin(m, 0);
+					}}
+					aria-label="Anheftung lösen"
+					title="Angeheftet von {currentPin.pinnedBy} – lösen"
+				>
+					<X size={16} />
+				</button>
+			{/if}
+		</div>
+	{/if}
+
 	<div
 		class="scroller"
 		bind:this={scroller}
@@ -308,6 +399,7 @@
 					meId={props.me.id}
 					onmenu={(x) => (menu = x)}
 					onreply={reply}
+					ondelete={askDelete}
 					onquote={jumpTo}
 				/>
 			{:else}
@@ -370,6 +462,21 @@
 				</div>
 			{/if}
 			<button class="action" onclick={() => reply(m)}><Reply size={18} /> Antworten</button>
+			{#if isPinned(m)}
+				<button class="action" onclick={() => pin(m, 0)}><PinOff size={18} /> Lösen</button>
+			{:else}
+				<button class="action" onclick={() => (pinMenu = !pinMenu)}>
+					<Pin size={18} /> Für alle anheften …
+				</button>
+				{#if pinMenu}
+					<div class="durations">
+						<button onclick={() => pin(m, 1)}>1 Std.</button>
+						<button onclick={() => pin(m, 12)}>12 Std.</button>
+						<button onclick={() => pin(m, 24)}>1 Tag</button>
+						<button onclick={() => pin(m, 72)}>3 Tage</button>
+					</div>
+				{/if}
+			{/if}
 		{/if}
 		<button
 			class="action"
@@ -380,9 +487,31 @@
 		>
 			<Copy size={18} /> Kopieren
 		</button>
-		{#if canDelete(m)}
-			<button class="action danger" onclick={() => remove(m)}><Trash2 size={18} /> Löschen</button>
+		<button class="action danger" onclick={() => askDelete(m)}><Trash2 size={18} /> Löschen</button>
+	</div>
+{/if}
+
+<!-- Löschen: für mich oder für alle -->
+{#if deleting}
+	{@const m = deleting}
+	<div class="backdrop" role="presentation" onclick={() => (deleting = null)}></div>
+	<div class="menu card" role="dialog" aria-label="Nachricht löschen">
+		<p class="ask">Nachricht löschen?</p>
+		<button class="action danger" onclick={() => deleteForMe(m)}>
+			<Trash2 size={18} /> Für mich löschen
+		</button>
+		{#if canDelete(m) && !m.deleted}
+			<button class="action danger" onclick={() => deleteForAll(m)}>
+				<Trash2 size={18} />
+				{props.chat.kind === 'direct' ? 'Für beide löschen' : 'Für alle löschen'}
+			</button>
 		{/if}
+		<button class="action" onclick={() => (deleting = null)}>Abbrechen</button>
+		<p class="hint">
+			«Für mich» blendet die Nachricht nur in deinem Verlauf aus{canDelete(m) && !m.deleted
+				? '; «für alle» ersetzt sie bei allen durch «Nachricht gelöscht».'
+				: '.'}
+		</p>
 	</div>
 {/if}
 
@@ -510,6 +639,96 @@
 
 	.popover p {
 		margin: 4px 10px 6px;
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.pins {
+		flex: none;
+		display: flex;
+		align-items: center;
+		width: 100%;
+		max-width: 760px;
+		margin: 0 auto;
+		padding: 0 var(--gutter);
+		border-bottom: 1px solid var(--line);
+		background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+	}
+
+	.pin-main {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+		padding: 9px 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-size: 14px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.pin-text {
+		flex: 1;
+		min-width: 0;
+		color: var(--text);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.pin-text strong {
+		font-weight: 600;
+	}
+
+	.pin-count {
+		flex: none;
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.pin-off {
+		display: grid;
+		padding: 6px;
+		border: 0;
+		border-radius: 50%;
+		background: none;
+		color: var(--muted);
+		cursor: pointer;
+	}
+
+	.durations {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		padding: 0 10px 8px 40px;
+	}
+
+	.durations button {
+		padding: 6px 12px;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		background: var(--surface-2);
+		color: var(--text);
+		font: inherit;
+		font-size: 13px;
+		cursor: pointer;
+	}
+
+	.durations button:hover {
+		border-color: var(--accent);
+	}
+
+	.ask {
+		margin: 4px 10px 8px;
+		font-weight: 600;
+	}
+
+	.hint {
+		margin: 6px 10px 2px;
 		font-size: 12px;
 		color: var(--muted);
 	}

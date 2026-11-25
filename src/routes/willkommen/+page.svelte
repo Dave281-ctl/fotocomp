@@ -132,6 +132,11 @@
 		</section>
 	</div>
 
+	<!-- Handy: dezenter Hinweis zum Wischen (nicht auf dem letzten Schritt) -->
+	<p class="swipe-hint" class:hidden={last} aria-hidden="true">
+		<span class="arrow left">‹</span> wischen <span class="arrow right">›</span>
+	</p>
+
 	<footer>
 		<button
 			class="btn ghost"
@@ -247,6 +252,64 @@
 		max-width: 520px;
 		margin: auto;
 		padding: 24px var(--gutter);
+	}
+
+	/* Handy: Text weiter oben, damit unten Platz für den Wisch-Hinweis bleibt */
+	@media (max-width: 720px) {
+		.content {
+			margin: 6vh auto auto;
+		}
+	}
+
+	.swipe-hint {
+		display: none;
+		justify-content: center;
+		align-items: center;
+		gap: 10px;
+		margin: 0 0 4px;
+		font-size: 13px;
+		letter-spacing: 0.04em;
+		color: var(--muted);
+		opacity: 0.75;
+		transition: opacity 0.3s;
+	}
+
+	.swipe-hint.hidden {
+		opacity: 0;
+	}
+
+	@media (hover: none) and (max-width: 720px) {
+		.swipe-hint {
+			display: flex;
+		}
+	}
+
+	.arrow {
+		font-size: 18px;
+		line-height: 1;
+		animation: nudge 1.8s ease-in-out infinite;
+	}
+
+	.arrow.left {
+		animation-name: nudge-left;
+	}
+
+	@keyframes nudge {
+		50% {
+			transform: translateX(4px);
+		}
+	}
+
+	@keyframes nudge-left {
+		50% {
+			transform: translateX(-4px);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.arrow {
+			animation: none;
+		}
 	}
 
 	.pick {

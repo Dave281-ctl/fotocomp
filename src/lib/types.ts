@@ -91,5 +91,15 @@ export interface ChatSummary {
 	unread: number;
 	mentioned: boolean;
 	muted: boolean;
+	favorite: boolean;
 	readOnly: boolean;
+}
+
+/** Eine oben angeheftete Nachricht. */
+export interface ChatPin {
+	messageId: number;
+	until: Date;
+	author: string;
+	excerpt: string;
+	pinnedBy: string;
 }

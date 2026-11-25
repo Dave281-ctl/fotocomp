@@ -18,6 +18,7 @@
 		lastRead={data.lastRead}
 		write={data.write}
 		muted={data.muted}
+		pins={data.pins}
 		retention={data.retention}
 		me={data.me}
 	/>

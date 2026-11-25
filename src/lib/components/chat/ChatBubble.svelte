@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { ChevronDown, Image } from '@lucide/svelte';
+	import { ChevronDown, Image, Reply, Trash2 } from '@lucide/svelte';
+	import { swipe } from '../../swipe.ts';
 	import { segments } from '../../chat-rules.ts';
 	import { photoSrc } from '../../media.ts';
 	import { formatTime } from '../../schedule.ts';
@@ -9,7 +10,7 @@
 	/**
 	 * Eine Nachricht: Sprechblase mit Zitat, Text (Erwähnungen, Links, Fotos),
 	 * Zeit und Reaktionen. Lange drücken oder ⌄ öffnet das Menü, nach rechts
-	 * wischen zitiert.
+	 * wischen zitiert, nach links wischen löscht.
 	 */
 	let {
 		message,
@@ -18,6 +19,7 @@
 		meId,
 		onmenu,
 		onreply,
+		ondelete,
 		onquote
 	}: {
 		message: ChatMessage;
@@ -26,53 +28,36 @@
 		meId: number;
 		onmenu: (message: ChatMessage) => void;
 		onreply: (message: ChatMessage) => void;
+		ondelete: (message: ChatMessage) => void;
 		onquote: (id: number) => void;
 	} = $props();
 
 	const parts = $derived(segments(message.body, message.mentions, page.url.origin));
 	let whoOpen = $state<string | null>(null);
 
-	// Lange drücken (Handy) öffnet das Menü; nach rechts wischen zitiert
-	let pressTimer: ReturnType<typeof setTimeout> | undefined;
-	let startX = 0;
-	let startY = 0;
+	// Handy: lange drücken = Menü, nach rechts wischen = zitieren, nach links = löschen
 	let dx = $state(0);
-	let swiping = false;
-
-	function touchStart(e: TouchEvent) {
-		if (message.deleted) return;
-		startX = e.touches[0].clientX;
-		startY = e.touches[0].clientY;
-		swiping = false;
-		pressTimer = setTimeout(() => onmenu(message), 450);
-	}
-
-	function touchMove(e: TouchEvent) {
-		const x = e.touches[0].clientX - startX;
-		const y = Math.abs(e.touches[0].clientY - startY);
-		if (Math.abs(x) > 8 || y > 8) clearTimeout(pressTimer);
-		if (!swiping && x > 12 && y < 20) swiping = true;
-		if (swiping) dx = Math.max(0, Math.min(72, x));
-	}
-
-	function touchEnd() {
-		clearTimeout(pressTimer);
-		if (swiping && dx > 56) onreply(message);
-		dx = 0;
-		swiping = false;
-	}
 </script>
 
 <div id="m-{message.id}" class="msg" class:own>
+	{#if dx > 0}<span class="swipe-icon reply" style:opacity={Math.min(1, dx / 56)}>
+			<Reply size={18} />
+		</span>{/if}
+	{#if dx < 0}<span class="swipe-icon trash" style:opacity={Math.min(1, -dx / 56)}>
+			<Trash2 size={18} />
+		</span>{/if}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="bubble"
 		class:deleted={message.deleted}
 		style:transform={dx ? `translateX(${dx}px)` : undefined}
-		ontouchstart={touchStart}
-		ontouchmove={touchMove}
-		ontouchend={touchEnd}
-		ontouchcancel={touchEnd}
+		style:transition={dx ? 'none' : undefined}
+		use:swipe={{
+			onright: message.deleted ? undefined : () => onreply(message),
+			onleft: () => ondelete(message),
+			onlong: message.deleted ? undefined : () => onmenu(message),
+			onmove: (x) => (dx = x)
+		}}
 		oncontextmenu={(e) => {
 			if (!message.deleted) {
 				e.preventDefault();
@@ -166,6 +151,33 @@
 		max-width: min(78%, 560px);
 	}
 
+	.msg {
+		position: relative;
+	}
+
+	.swipe-icon {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--surface-2);
+		color: var(--muted);
+	}
+
+	.swipe-icon.reply {
+		left: 4px;
+		color: var(--accent);
+	}
+
+	.swipe-icon.trash {
+		right: 4px;
+		color: var(--danger);
+	}
+
 	.msg.own {
 		justify-items: end;
 		margin-left: auto;
@@ -179,7 +191,7 @@
 		padding: 7px 12px 6px;
 		border-radius: 16px 16px 16px 4px;
 		background: var(--surface);
-		transition: transform 0.15s;
+		transition: transform 0.2s;
 		-webkit-touch-callout: none;
 		user-select: text;
 	}

@@ -8,6 +8,7 @@
 export type ChatEvent =
 	| { type: 'message'; chatId: number; message: unknown }
 	| { type: 'update'; chatId: number; message: unknown }
+	| { type: 'pins'; chatId: number; pins: unknown }
 	| { type: 'unread' };
 
 interface Listener {

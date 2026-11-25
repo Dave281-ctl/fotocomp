@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { House, Images, Layers, MessageCircle, Shield, UserRound } from '@lucide/svelte';
-	import { live } from '../chat-live.svelte.ts';
+	import { live } from '#lib/chat-live.svelte.ts';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import logoMark from './logo-mark.svg?raw';
 
-	let { user, theme }: { user: { name: string; role: string }; theme: 'dark' | 'light' } = $props();
+	let {
+		user,
+		theme,
+		themesHref = '/themen'
+	}: {
+		user: { name: string; role: string };
+		theme: 'dark' | 'light';
+		themesHref?: string;
+	} = $props();
 
 	const items = $derived([
 		{ href: '/', label: 'Heute', icon: House },
-		{ href: '/themen', label: 'Themen', icon: Layers },
+		{ href: themesHref, label: 'Themen', icon: Layers, section: '/themen' },
 		{ href: '/chat', label: 'Chat', icon: MessageCircle },
 		{ href: '/galerie', label: 'Galerie', icon: Images },
 		{ href: '/profil', label: 'Profil', icon: UserRound },
@@ -21,6 +29,8 @@
 
 	const isActive = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
+	const activeItem = (item: { href: string; section?: string }) =>
+		isActive(item.section ?? item.href);
 </script>
 
 <header>
@@ -33,7 +43,7 @@
 		{#each items as item (item.href)}
 			<a
 				href={item.href}
-				class:active={isActive(item.href)}
+				class:active={activeItem(item)}
 				class:desktop-only={'desktopOnly' in item}
 			>
 				<span class="icon">

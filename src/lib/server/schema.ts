@@ -354,9 +354,59 @@ export const chatReads = pgTable(
 		userId: integer('user_id')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
-		lastReadId: integer('last_read_id').notNull()
+		lastReadId: integer('last_read_id').notNull(),
+		/** «Chat für mich löschen»: Nachrichten bis zu dieser ID sind für diese Person weg. */
+		clearedUpTo: integer('cleared_up_to').notNull().default(0)
 	},
 	(t) => [primaryKey({ columns: [t.chatId, t.userId] })]
+);
+
+/** «Für mich löschen»: Nachricht nur im eigenen Verlauf ausgeblendet. */
+export const hiddenMessages = pgTable(
+	'hidden_messages',
+	{
+		messageId: integer('message_id')
+			.notNull()
+			.references(() => messages.id, { onDelete: 'cascade' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' })
+	},
+	(t) => [primaryKey({ columns: [t.messageId, t.userId] })]
+);
+
+/** Bis zu 3 angeheftete Lieblings-Chats pro Person. */
+export const chatFavorites = pgTable(
+	'chat_favorites',
+	{
+		chatId: integer('chat_id')
+			.notNull()
+			.references(() => chats.id, { onDelete: 'cascade' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: createdAt()
+	},
+	(t) => [primaryKey({ columns: [t.chatId, t.userId] })]
+);
+
+/** Oben angeheftete Nachrichten (für alle im Chat, höchstens 3, mit Ablaufzeit). */
+export const messagePins = pgTable(
+	'message_pins',
+	{
+		messageId: integer('message_id')
+			.primaryKey()
+			.references(() => messages.id, { onDelete: 'cascade' }),
+		chatId: integer('chat_id')
+			.notNull()
+			.references(() => chats.id, { onDelete: 'cascade' }),
+		pinnedBy: integer('pinned_by')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		until: timestamp('until', { withTimezone: true }).notNull(),
+		createdAt: createdAt()
+	},
+	(t) => [index('pins_chat').on(t.chatId)]
 );
 
 /** Stummgeschaltete Chats; `until` leer = für immer. */
