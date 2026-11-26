@@ -65,11 +65,7 @@
 			<section class="card group stack" style="--gap: 10px">
 				<a class="group-head row" href="/themen/{g.theme.id}">
 					<h2>{g.theme.title}</h2>
-					{#if g.open}
-						<span class="chip open">{g.open} offen</span>
-					{:else if g.tasks.length}
-						<span class="chip done"><CircleCheck size={13} /> erledigt</span>
-					{/if}
+					{#if g.open}<span class="chip open">{g.open} offen</span>{/if}
 					<ChevronRight size={18} class="chevron" />
 				</a>
 				{#if g.tasks.length}<TaskList tasks={g.tasks} />{/if}
@@ -171,10 +167,6 @@
 	.chip.open {
 		background: var(--accent);
 		color: var(--accent-text);
-	}
-
-	.chip.done {
-		color: var(--ok);
 	}
 
 	.sep {
