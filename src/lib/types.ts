@@ -52,6 +52,8 @@ export interface Task {
 
 /** Eine Neuigkeit in einem Thema (Heute). */
 export interface NewsItem {
+	/** Eindeutig pro Neuigkeit (für «schon gesehen»), z.B. «result:3:2026-11-25» */
+	key: string;
 	kind: 'result' | 'weekly' | 'feedback' | 'mention';
 	at: Date;
 	/** «heute 05:00» */

@@ -148,6 +148,7 @@ export async function themeNews(
 			const mine = ranked.find((p) => p.isOwn);
 			const unrated = !mine && dayPhotos.some((p) => p.isOwn);
 			items.push({
+				key: `result:${theme.id}:${day}`,
 				kind: 'result',
 				at: revealedAt!,
 				title: winner.isOwn
@@ -172,6 +173,7 @@ export async function themeNews(
 		const winner = result?.podium[0];
 		if (winner) {
 			items.push({
+				key: `weekly:${theme.id}:${voteDay}`,
 				kind: 'weekly',
 				at: weekAt!,
 				title: winner.isOwn ? 'Dein Foto ist das Wochenfoto!' : 'Das Wochenfoto ist gekürt',
@@ -185,6 +187,7 @@ export async function themeNews(
 	// Feedback zu meinen Fotos
 	const received = await db
 		.select({
+			id: feedback.id,
 			at: feedback.createdAt,
 			body: feedback.body,
 			author: users.name,
@@ -205,6 +208,7 @@ export async function themeNews(
 		.limit(5);
 	for (const f of received) {
 		items.push({
+			key: `feedback:${f.id}`,
 			kind: 'feedback',
 			at: f.at,
 			title: `${f.author} hat dir Feedback gegeben`,

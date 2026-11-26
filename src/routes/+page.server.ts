@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { formatDay, formatWhen, gameDay, isThemeOpen, themePhase } from '#lib/schedule.ts';
 import { chatExcerpt } from '#lib/chat-rules.ts';
 import { recentMentions } from '#lib/server/chat.ts';
+import { seenEnough } from '#lib/server/news-views.ts';
 import { NEWS_DAYS, themeNews, themeTasks } from '#lib/server/theme-status.ts';
 import type { NewsItem } from '#lib/types.ts';
 import { now } from '#lib/server/time.ts';
@@ -41,6 +42,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const chatNews: NewsItem[] = [];
 	for (const m of mentions) {
 		const item: NewsItem = {
+			key: `mention:${m.messageId}`,
 			kind: 'mention',
 			at: m.at,
 			when: formatWhen(m.at, t),
@@ -58,13 +60,26 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		} else chatNews.push(item);
 	}
 
-	const rank = (g: (typeof groups)[number]) => (g.open ? 0 : g.news.length ? 1 : 2);
+	// Neuigkeiten, die schon zweimal gezeigt oder angetippt wurden, ausblenden
+	const hidden = await seenEnough(user.id, [
+		...groups.flatMap((g) => g.news.map((n) => n.key)),
+		...chatNews.map((n) => n.key)
+	]);
+	for (const g of groups) {
+		g.news = g.news.filter((n) => !hidden.has(n.key));
+		g.latest = g.news[0]?.at.getTime() ?? 0;
+	}
+	const visibleChatNews = chatNews.filter((n) => !hidden.has(n.key));
+
+	// Offene Aufgaben zuerst, dann Neuigkeiten, dann nur Erledigtes, dann ruhige Themen
+	const rank = (g: (typeof groups)[number]) =>
+		g.open ? 0 : g.news.length ? 1 : g.tasks.length ? 2 : 3;
 	groups.sort((a, b) => rank(a) - rank(b) || (rank(a) === 0 ? a.due - b.due : b.latest - a.latest));
 
 	return {
 		day: formatDay(gameDay(t)),
 		groups,
-		chatNews,
+		chatNews: visibleChatNews,
 		openTotal: groups.reduce((n, g) => n + g.open, 0),
 		hasThemes: memberships.some(({ theme }) => isThemeOpen(theme, t)),
 		seenAt: t.toISOString()

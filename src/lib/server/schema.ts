@@ -265,6 +265,23 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
 	createdAt: createdAt()
 });
 
+/**
+ * Wie oft eine Neuigkeit auf «Heute» schon gezeigt wurde. Nach zwei Besuchen
+ * (oder einmal antippen) verschwindet sie. Schlüssel z.B. «result:3:2026-11-25».
+ */
+export const newsViews = pgTable(
+	'news_views',
+	{
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		key: text('key').notNull(),
+		views: integer('views').notNull().default(0),
+		lastAt: timestamp('last_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.key] })]
+);
+
 // --------------------------------------------------------------- Chat
 
 /**

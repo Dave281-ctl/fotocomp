@@ -36,6 +36,7 @@ import {
 } from '../schedule.ts';
 import { isQuietHour, resolvePrefs, type NotifyPrefs } from '../notify.ts';
 import { purgeExpired } from './chat.ts';
+import { purgeNewsViews } from './news-views.ts';
 import { config } from './config.ts';
 import { db } from './db.ts';
 import { getParticipation } from './feedback.ts';
@@ -75,7 +76,8 @@ export function startJobs() {
 	timer = setInterval(run, INTERVAL);
 	setTimeout(run, 10_000).unref();
 	// Abgelaufene Chatnachrichten endgültig löschen
-	const purge = () => purgeExpired().catch((e) => console.error('Chat aufräumen:', e));
+	const purge = () =>
+		Promise.all([purgeExpired(), purgeNewsViews()]).catch((e) => console.error('Aufräumen:', e));
 	purgeTimer = setInterval(purge, 10 * 60 * 1000);
 	setTimeout(purge, 20_000).unref();
 }

@@ -4,13 +4,17 @@
 	import type { NewsItem } from '../types.ts';
 
 	/** Neuigkeiten: kleines Bild, Titel, Text, wann. Ungesehenes mit Punkt. */
-	let { news }: { news: NewsItem[] } = $props();
+	let {
+		news,
+		onopen
+	}: { news: NewsItem[]; /** Antippen: gilt als gesehen */ onopen?: (key: string) => void } =
+		$props();
 </script>
 
 <ul class="news">
-	{#each news as item (item.kind + item.href + item.at)}
+	{#each news as item (item.key)}
 		<li>
-			<a href={item.href} class="item">
+			<a href={item.href} class="item" onclick={() => onopen?.(item.key)}>
 				<span class="thumb">
 					{#if item.photoId}
 						<img src={photoSrc(item.photoId, 480)} alt="" loading="lazy" />

@@ -8,17 +8,29 @@
 
 	let { data }: PageProps = $props();
 
-	// Erst nach dem Anzeigen als gesehen markieren (nicht schon beim Vorladen)
-	onMount(() => {
-		void fetch('/api/gesehen', {
+	const seen = (body: object) =>
+		fetch('/api/gesehen', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ at: data.seenAt })
+			body: JSON.stringify(body)
 		});
+
+	// Erst nach dem Anzeigen zählen (nicht schon beim Vorladen): Jede Neuigkeit
+	// erscheint höchstens zweimal, danach verschwindet sie
+	onMount(() => {
+		const keys = [
+			...data.groups.flatMap((g) => g.news.map((n) => n.key)),
+			...data.chatNews.map((n) => n.key)
+		];
+		void seen({ at: data.seenAt, keys });
 	});
 
-	const active = $derived(data.groups.filter((g) => g.open || g.news.length));
-	const quiet = $derived(data.groups.filter((g) => !g.open && !g.news.length));
+	/** Angetippt: gilt als gesehen und erscheint nicht mehr. */
+	const opened = (key: string) => void seen({ done: key });
+
+	// Erledigte Aufgaben bleiben stehen (z.B. um das Foto zu ersetzen)
+	const active = $derived(data.groups.filter((g) => g.open || g.news.length || g.tasks.length));
+	const quiet = $derived(data.groups.filter((g) => !g.open && !g.news.length && !g.tasks.length));
 </script>
 
 <svelte:head><title>Heute · Fotocomp</title></svelte:head>
@@ -63,7 +75,7 @@
 				{#if g.tasks.length}<TaskList tasks={g.tasks} />{/if}
 				{#if g.news.length}
 					{#if g.tasks.length}<hr class="sep" />{/if}
-					<NewsList news={g.news} />
+					<NewsList news={g.news} onopen={opened} />
 				{/if}
 			</section>
 		{/each}
@@ -74,7 +86,7 @@
 					<h2>Chat</h2>
 					<ChevronRight size={18} class="chevron" />
 				</a>
-				<NewsList news={data.chatNews} />
+				<NewsList news={data.chatNews} onopen={opened} />
 			</section>
 		{/if}
 
