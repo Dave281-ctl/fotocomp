@@ -280,7 +280,9 @@
 
 		<div class="bottom">
 			{#if voting && !photo.isOwn}
-				<Stars value={photo.myStars} size={26} onrate={(s) => onrate?.(photo, s)} />
+				{#key photo.id}
+					<Stars value={photo.myStars} size={26} onrate={(s) => onrate?.(photo, s)} />
+				{/key}
 			{:else if photo.userName}
 				{#if photo.userId}
 					<a class="who" href="/person/{photo.userId}" onclick={close}>{photo.userName}</a>

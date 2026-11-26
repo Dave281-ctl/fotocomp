@@ -170,7 +170,7 @@ async function collectEvents(t: Date): Promise<ThemeEvent[]> {
 				events.push({
 					...base,
 					at: at(today, VOTING_START_HOUR),
-					path: `${themePath}/bewerten`,
+					path: '/bewerten',
 					key: `voting:${theme.id}:${today}`,
 					event: { kind: 'voting', theme: theme.title, photos: owners.length },
 					owners

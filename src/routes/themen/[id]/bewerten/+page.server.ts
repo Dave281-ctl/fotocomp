@@ -1,15 +1,5 @@
-import { getDayPhotos } from '#lib/server/gallery.ts';
-import { requireMembership } from '#lib/server/theme-guard.ts';
-import { now } from '#lib/server/time.ts';
-import { getPhase } from '#lib/server/themes.ts';
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
-	const user = locals.user!;
-	const { theme } = await requireMembership(user.id, Number(params.id));
-	const t = now();
-	const phase = await getPhase(theme, t);
-	return {
-		votingPhotos: phase.kind === 'voting' ? await getDayPhotos(theme.id, phase.day, user.id, t) : []
-	};
-};
+/** Bewertet wird auf einer Seite für alle Themen – hier zum Abschnitt dieses Themas. */
+export const load: PageServerLoad = ({ params }) => redirect(303, `/bewerten#thema-${params.id}`);

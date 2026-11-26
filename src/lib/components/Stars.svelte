@@ -13,11 +13,13 @@
 		disabled?: boolean;
 	} = $props();
 
+	// Vorschau beim Darüberfahren – nur mit der Maus. Auf dem Handy würde sie nach
+	// dem Antippen «hängen bleiben» und falsche Sterne zeigen.
 	let hover = $state<number | null>(null);
 	const shown = $derived(hover ?? value ?? 0);
 </script>
 
-<div class="stars" role="group" aria-label="Bewertung" onmouseleave={() => (hover = null)}>
+<div class="stars" role="group" aria-label="Bewertung" onpointerleave={() => (hover = null)}>
 	{#each [1, 2, 3, 4, 5] as n (n)}
 		<button
 			type="button"
@@ -25,8 +27,11 @@
 			aria-label="{n} {n === 1 ? 'Stern' : 'Sterne'}"
 			class:on={n <= shown}
 			{disabled}
-			onmouseenter={() => !disabled && (hover = n)}
-			onclick={() => onrate?.(n)}
+			onpointerenter={(e) => !disabled && e.pointerType === 'mouse' && (hover = n)}
+			onclick={() => {
+				hover = null;
+				onrate?.(n);
+			}}
 		>
 			<Star {size} strokeWidth={1.5} fill={n <= shown ? 'currentColor' : 'none'} />
 		</button>

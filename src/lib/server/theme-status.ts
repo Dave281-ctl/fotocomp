@@ -64,7 +64,7 @@ export async function themeTasks(theme: Theme, user: User, t: Date): Promise<Tas
 				title: done ? 'Alle Fotos bewertet' : 'Fotos bewerten',
 				detail: `${rated} von ${toRate.length} · ${formatDeadline(phase.endsAt, t)}`,
 				done,
-				href: `${base}/bewerten`,
+				href: `/bewerten#thema-${theme.id}`,
 				due: phase.endsAt
 			});
 		}

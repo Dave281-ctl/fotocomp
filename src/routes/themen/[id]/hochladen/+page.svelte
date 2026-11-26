@@ -26,7 +26,7 @@
 		<p class="notice">
 			{#if phase.kind === 'voting'}
 				Der Upload für heute ist vorbei – jetzt wird bewertet.
-				<a href="/themen/{data.theme.id}/bewerten"><u>Zur Bewertung</u></a>
+				<a href="/bewerten#thema-{data.theme.id}"><u>Zur Bewertung</u></a>
 			{:else if phase.kind === 'weekly'}
 				Heute ist Wochenbewertung, es gibt keinen Tages-Upload.
 				<a href="/themen/{data.theme.id}/wochenfoto"><u>Wochenfoto wählen</u></a>
