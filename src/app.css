@@ -132,6 +132,15 @@ p {
 	.page {
 		padding-top: 8px;
 	}
+
+	/* Unterseiten mit Zurück-Knopf: er steht ganz oben, statt der Logo-Zeile */
+	body:has([data-back-link]) .app-header {
+		display: none;
+	}
+
+	body:has([data-back-link]) main {
+		padding-top: calc(var(--safe-top) + 6px);
+	}
 }
 
 .stack {

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { ChevronLeft, Search } from '@lucide/svelte';
+	import { Search } from '@lucide/svelte';
+	import BackLink from '#lib/components/BackLink.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import type { PageProps } from './$types';
 
@@ -14,7 +15,7 @@
 
 <div class="page narrow stack" style="--gap: 20px">
 	<div class="stack" style="--gap: 8px">
-		<a class="back row muted small" href="/chat"><ChevronLeft size={16} /> Chat</a>
+		<BackLink href="/chat" label="Chat" />
 		<h1>Neuer Chat</h1>
 	</div>
 	<div class="search">
@@ -43,11 +44,6 @@
 </div>
 
 <style>
-	.back {
-		--gap: 2px;
-		width: fit-content;
-	}
-
 	.search {
 		display: flex;
 		align-items: center;

@@ -44,7 +44,7 @@
 	const hidden = $derived(page.data.header === 'hidden');
 </script>
 
-<header class:overlay class:hidden>
+<header class="app-header" class:overlay class:hidden>
 	<a class="brand" href="/" aria-label="Fotocomp, zu Heute">fotocomp<span class="dot">.</span></a>
 	<nav>
 		{#each items as item (item.href)}

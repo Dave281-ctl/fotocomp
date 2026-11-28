@@ -2,7 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { BellRing, ChevronLeft } from '@lucide/svelte';
+	import { BellRing } from '@lucide/svelte';
+	import BackLink from '#lib/components/BackLink.svelte';
 	import InstallGuide from '#lib/components/InstallGuide.svelte';
 	import { NOTIFY_KINDS } from '#lib/notify.ts';
 	import {
@@ -75,7 +76,7 @@
 
 <div class="page narrow stack" style="--gap: 36px">
 	<div class="stack" style="--gap: 6px">
-		<a class="back muted small row" href="/profil"><ChevronLeft size={16} /> Profil</a>
+		<BackLink href="/profil" label="Profil" />
 		<h1>Mitteilungen</h1>
 		<p class="muted">
 			Wähle, woran Fotocomp dich erinnert – per Push aufs Handy und/oder per Mail.
@@ -234,11 +235,6 @@
 </div>
 
 <style>
-	.back {
-		--gap: 4px;
-		width: fit-content;
-	}
-
 	.ok {
 		color: var(--ok);
 	}
