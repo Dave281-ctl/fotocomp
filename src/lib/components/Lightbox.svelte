@@ -365,7 +365,7 @@
 	.top {
 		top: 0;
 		justify-content: space-between;
-		padding-top: max(12px, env(safe-area-inset-top));
+		padding-top: max(12px, var(--safe-top));
 	}
 
 	.bottom {

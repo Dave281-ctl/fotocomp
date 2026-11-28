@@ -358,7 +358,7 @@
 		flex-direction: column;
 		background: #000;
 		color: #fff;
-		padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+		padding: var(--safe-top) 0 env(safe-area-inset-bottom);
 	}
 
 	/* Hell: heller Grund wie im Rest der App */

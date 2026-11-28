@@ -171,7 +171,7 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--bg);
-		padding: max(16px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom));
+		padding: max(16px, var(--safe-top)) 0 max(16px, env(safe-area-inset-bottom));
 	}
 
 	header,
