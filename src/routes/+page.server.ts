@@ -107,14 +107,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			? null
 			: `noch ${Math.floor(left / 3_600_000)}:${String(Math.floor(left / 60_000) % 60).padStart(2, '0')} Std.`;
 
+	const hero = await latestWin(
+		memberships.map((m) => m.theme),
+		user.id,
+		t
+	);
+
 	return {
 		day: formatDay(gameDay(t)),
 		shortDay: formatShortDay(gameDay(t)),
-		hero: await latestWin(
-			memberships.map((m) => m.theme),
-			user.id,
-			t
-		),
+		hero,
+		// Am Handy liegt die Kopfzeile auf dem Titelbild (siehe Nav)
+		header: hero ? ('overlay' as const) : null,
 		week: await weekStats(user.id, t),
 		headline,
 		remaining,

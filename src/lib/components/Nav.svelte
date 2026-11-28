@@ -36,11 +36,15 @@
 	const activeItem = (item: { href: string; section?: string }) =>
 		isActive(item.section ?? item.href);
 
-	/** Heute mit Titelbild: Kopfzeile liegt am Handy auf dem Bild */
-	const overlay = $derived(page.url.pathname === '/' && !!page.data.hero);
+	/**
+	 * Seiten mit grossem Titelbild steuern die Kopfzeile am Handy über `header`:
+	 * «overlay» = liegt auf dem Bild (Heute), «hidden» = eigene Kopfzeile (Thema).
+	 */
+	const overlay = $derived(page.data.header === 'overlay');
+	const hidden = $derived(page.data.header === 'hidden');
 </script>
 
-<header class:overlay>
+<header class:overlay class:hidden>
 	<a class="brand" href="/" aria-label="Fotocomp, zu Heute">fotocomp<span class="dot">.</span></a>
 	<nav>
 		{#each items as item (item.href)}
@@ -171,6 +175,10 @@
 			backdrop-filter: none;
 			-webkit-backdrop-filter: none;
 			background: var(--bg);
+		}
+
+		header.hidden {
+			display: none;
 		}
 
 		header.overlay {
