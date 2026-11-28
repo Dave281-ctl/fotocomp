@@ -57,6 +57,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		feedbackWanted: photo.feedbackWanted,
 		feedback: await getFeedback(photo, user),
 		canGiveFeedback: await canGiveFeedback(photo, user, t),
+		// Position im Tag für «2 / 8» in der Fokus-Ansicht
+		pos: pos + 1,
+		total: day.length,
 		prev: pos > 0 ? day[pos - 1].id : null,
 		next: pos >= 0 && pos < day.length - 1 ? day[pos + 1].id : null
 	};
