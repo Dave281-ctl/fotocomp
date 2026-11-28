@@ -35,3 +35,16 @@ describe('allowedByPolicy', () => {
 		expect(policyRanges('v0.3.5')).toEqual({ major: 'v0.x.x', minor: 'v0.3.x' });
 	});
 });
+
+describe('Vorabversionen', () => {
+	it('Beta ist älter als die stabile Version mit derselben Nummer', () => {
+		expect(isNewer('v0.9.0', 'v0.9.0-beta.2')).toBe(true);
+		expect(isNewer('v0.9.0-beta.2', 'v0.9.0-beta.1')).toBe(true);
+		expect(isNewer('v0.9.0-beta.1', 'v0.8.7')).toBe(true);
+		expect(isNewer('v0.9.0-beta.1', 'v0.9.0')).toBe(false);
+	});
+	it('Bereiche gelten auch für Vorabversionen', () => {
+		expect(allowedByPolicy('v0.9.0-beta.1', 'v0.8.7', 'minor')).toBe(false);
+		expect(allowedByPolicy('v0.9.0-beta.2', 'v0.9.0-beta.1', 'minor')).toBe(true);
+	});
+});

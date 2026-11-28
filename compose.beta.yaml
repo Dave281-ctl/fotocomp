@@ -1,0 +1,69 @@
+# Fotocomp BETA – eine zweite, völlig getrennte Instanz zum Testen neuer Versionen.
+#
+# Läuft neben der stabilen Plattform auf demselben NAS, mit eigener Datenbank,
+# eigenen Fotos, eigenem Port und eigener Adresse (z.B. beta.fotocomp.example.com).
+# Sie bekommt Vorabversionen (z.B. v0.9.0-beta.1) über das Image «:beta» und
+# zeigt oben ein gestreiftes «BETA»-Band.
+#
+# Einrichtung: siehe ENTWICKLUNG.md → «Beta-Instanz auf dem NAS».
+# Diese Datei muss nicht angepasst werden; die Werte stehen in der .env im
+# selben Ordner (Vorlage: beta.env.example).
+#
+# Ordner vorher anlegen:
+#   /volume1/docker/fotocomp-beta/photos  und  /volume1/docker/fotocomp-beta/db
+
+services:
+  app:
+    image: ghcr.io/dave281-ctl/fotocomp:beta
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '${APP_PORT:-3026}:3000' # links der Port auf dem NAS (anders als die stabile Instanz!)
+    environment:
+      APP_CHANNEL: beta # Vorabversionen installieren, BETA-Band zeigen
+      ORIGIN: ${ORIGIN}
+      DB_USER: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_DATABASE_NAME}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      MAIL_FROM: ${MAIL_FROM}
+      UPDATE_TOKEN: ${UPDATE_TOKEN}
+    volumes:
+      - /volume1/docker/fotocomp-beta/photos:/data
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+      # Eigener Bereich: Nur der Beta-Watchtower aktualisiert diesen Container
+      - com.centurylinklabs.watchtower.scope=fotocomp-beta
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+    volumes:
+      - /volume1/docker/fotocomp-beta/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME}']
+      interval: 10s
+      retries: 10
+
+  # Installiert Updates der Beta-App – und nur dieser (Scope «fotocomp-beta»),
+  # damit die stabile Plattform nie von hier aus aktualisiert wird.
+  watchtower:
+    image: nickfedor/watchtower:latest
+    restart: unless-stopped
+    command: --label-enable --cleanup --scope fotocomp-beta --http-api-endpoints update
+    environment:
+      TZ: Europe/Zurich
+      WATCHTOWER_HTTP_API_TOKEN: ${UPDATE_TOKEN}
+    labels:
+      - com.centurylinklabs.watchtower.scope=fotocomp-beta
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

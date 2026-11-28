@@ -136,6 +136,12 @@
 
 	<section id="updates" class="stack" style="--gap: 20px">
 		<h2 class="legend">Updates</h2>
+		{#if u.channel === 'beta'}
+			<p class="notice">
+				<strong>Beta-Instanz:</strong> Hier kommen auch Vorabversionen (z.B. v0.9.0-beta.1). Der Kanal
+				wird in der compose.beta.yaml festgelegt (APP_CHANNEL=beta).
+			</p>
+		{/if}
 
 		{#if !u.configured}
 			<div class="notice stack" style="--gap: 6px">

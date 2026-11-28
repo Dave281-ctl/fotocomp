@@ -20,6 +20,13 @@
 	<title>Fotocomp</title>
 </svelte:head>
 
+<!-- Beta-Instanz: unübersehbar, damit niemand sie mit der echten Plattform verwechselt -->
+{#if data.channel === 'beta'}
+	<div class="beta-band" role="note">
+		<strong>BETA</strong> · {data.version} · Testumgebung – nicht die echte Plattform
+	</div>
+{/if}
+
 {#if data.user}
 	<Nav
 		user={data.user}
@@ -40,6 +47,21 @@
 </main>
 
 <style>
+	.beta-band {
+		padding: 4px var(--gutter);
+		background: repeating-linear-gradient(
+			-45deg,
+			var(--accent),
+			var(--accent) 10px,
+			color-mix(in srgb, var(--accent) 85%, #000) 10px,
+			color-mix(in srgb, var(--accent) 85%, #000) 20px
+		);
+		color: var(--accent-text);
+		font-size: 12px;
+		text-align: center;
+		letter-spacing: 0.02em;
+	}
+
 	.version {
 		padding: 48px 0 20px;
 		text-align: center;

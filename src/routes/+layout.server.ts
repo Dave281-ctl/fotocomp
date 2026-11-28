@@ -28,6 +28,7 @@ export const load: LayoutServerLoad = async ({ locals, url, depends }) => {
 		user: user ? { id: user.id, name: user.name, role: user.role } : null,
 		theme: locals.theme,
 		version: config.version,
+		channel: config.channel,
 		pushKey: user ? await vapidPublicKey() : null,
 		chatUnread: user ? await unreadTotal(user) : 0,
 		// Offene Aufgaben (Hochladen, Bewerten …) für den Zähler bei «Heute»

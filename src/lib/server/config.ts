@@ -17,6 +17,10 @@ export const config = {
 	get version() {
 		return env('APP_VERSION', 'dev');
 	},
+	/** Update-Kanal: «beta» auf der Beta-Instanz (siehe compose.beta.yaml), sonst «stable». */
+	get channel(): 'stable' | 'beta' {
+		return process.env.APP_CHANNEL === 'beta' ? 'beta' : 'stable';
+	},
 	get origin() {
 		return env('ORIGIN', 'http://localhost:5173');
 	},

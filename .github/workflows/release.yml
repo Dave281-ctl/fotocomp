@@ -3,6 +3,11 @@ name: Release
 # Bei jedem veröffentlichten GitHub-Release wird ein Docker-Image gebaut und
 # in die GitHub Container Registry geladen (ghcr.io/<owner>/fotocomp).
 #
+# Image-Tags (siehe scripts/channels.js):
+#   v0.9.0-beta.1 (Pre-release) → 0.9.0-beta.1, beta          → nur die Beta-Instanz
+#   v0.9.0        (stabil)      → 0.9.0, 0.9, latest, beta   → alle
+# «latest» bekommt nur die neueste stabile Version, «beta» die neueste überhaupt.
+#
 # Beide Prozessortypen (Intel/AMD und ARM) werden parallel auf eigenen,
 # passenden Servern gebaut – ohne langsame Emulation – und danach zu einem
 # gemeinsamen Image zusammengeführt.
@@ -83,6 +88,17 @@ jobs:
         env:
           OWNER: ${{ github.repository_owner }}
 
+      - uses: actions/checkout@v7
+
+      # Welche Kanäle bekommt diese Version? (latest = stabil, beta = Beta-Instanz)
+      - id: channels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases?per_page=100" \
+            --jq '.[] | select(.draft == false) | .tag_name' \
+            | node scripts/channels.js "$VERSION" | tee -a "$GITHUB_OUTPUT"
+
       - uses: actions/download-artifact@v8
         with:
           path: /tmp/digests
@@ -103,8 +119,9 @@ jobs:
           images: ${{ env.IMAGE }}
           tags: |
             type=semver,pattern={{version}},value=${{ env.VERSION }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
-            type=raw,value=latest
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }},enable=${{ steps.channels.outputs.latest }}
+            type=raw,value=latest,enable=${{ steps.channels.outputs.latest }}
+            type=raw,value=beta,enable=${{ steps.channels.outputs.beta }}
 
       - name: Gemeinsames Image erstellen
         working-directory: /tmp/digests
@@ -114,4 +131,4 @@ jobs:
             $(printf "$IMAGE@sha256:%s " *)
 
       - name: Prüfen
-        run: docker buildx imagetools inspect "$IMAGE:latest"
+        run: docker buildx imagetools inspect "$(jq -r '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON")"
