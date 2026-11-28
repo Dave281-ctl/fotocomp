@@ -302,13 +302,31 @@
 {/if}
 
 <style>
+	/* Farben folgen dem Erscheinungsbild: dunkel schwarz, hell der helle Grund */
 	.lightbox {
+		--lb-bg: #000;
+		--lb-fg: #eee;
+		--lb-strong: #f2f2f2;
+		--lb-soft: #c8c8c8;
+		--lb-dim: #8a8a8a;
+		--lb-hover: rgb(255 255 255 / 0.08);
+		--lb-on: rgb(255 255 255 / 0.14);
 		position: fixed;
 		inset: 0;
 		z-index: 100;
-		background: #000;
-		color: #eee;
+		background: var(--lb-bg);
+		color: var(--lb-fg);
 		outline: none;
+	}
+
+	:global([data-theme='light']) .lightbox {
+		--lb-bg: var(--bg);
+		--lb-fg: var(--text);
+		--lb-strong: var(--text);
+		--lb-soft: color-mix(in srgb, var(--text) 75%, var(--muted));
+		--lb-dim: var(--muted);
+		--lb-hover: rgb(0 0 0 / 0.06);
+		--lb-on: rgb(0 0 0 / 0.1);
 	}
 
 	.stage {
@@ -368,7 +386,7 @@
 
 	.count,
 	.dim {
-		color: #8a8a8a;
+		color: var(--lb-dim);
 		font-size: 13px;
 	}
 
@@ -384,7 +402,7 @@
 		place-items: center;
 		background: none;
 		border: 0;
-		color: #ddd;
+		color: var(--lb-fg);
 		cursor: pointer;
 		padding: 8px;
 		border-radius: 999px;
@@ -393,12 +411,12 @@
 	.actions a:hover,
 	.actions button:hover,
 	.nav:hover {
-		background: rgb(255 255 255 / 0.08);
+		background: var(--lb-hover);
 	}
 
 	.actions button.on {
-		background: rgb(255 255 255 / 0.14);
-		color: #fff;
+		background: var(--lb-on);
+		color: var(--lb-strong);
 	}
 
 	/* Aufnahmedaten: schlicht, im freien Rand neben oder unter dem Bild */
@@ -408,7 +426,7 @@
 		gap: 3px;
 		font-size: 12.5px;
 		line-height: 1.4;
-		color: #c8c8c8;
+		color: var(--lb-soft);
 		pointer-events: none;
 		animation: fade 0.2s ease;
 	}
@@ -418,7 +436,7 @@
 	}
 
 	.info a {
-		color: #c8c8c8;
+		color: var(--lb-soft);
 		text-decoration: underline;
 		text-underline-offset: 2px;
 		pointer-events: auto;
@@ -430,12 +448,12 @@
 		gap: 2px 12px;
 		font-size: 14px;
 		font-weight: 500;
-		color: #f2f2f2;
+		color: var(--lb-strong);
 		font-variant-numeric: tabular-nums;
 	}
 
 	.faint {
-		color: #9a9a9a;
+		color: var(--lb-dim);
 	}
 
 	/* Teile mit «·» getrennt; in der Seitenspalte untereinander */
@@ -467,6 +485,9 @@
 
 	/* Kein freier Rand: Leiste über der Bildunterkante mit sanftem Verlauf */
 	.info.overlay {
+		--lb-strong: #f2f2f2;
+		--lb-soft: #c8c8c8;
+		--lb-dim: #b8b8b8;
 		padding: 48px 16px 12px;
 		background: linear-gradient(to top, rgb(0 0 0 / 0.8) 30%, rgb(0 0 0 / 0));
 		text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
@@ -492,7 +513,7 @@
 	}
 
 	.bottom :global(button) {
-		color: #777;
+		color: var(--lb-dim);
 	}
 
 	.bottom :global(button.on) {

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { photoSrc } from '../media.ts';
 	import type { FeedPhoto } from '../types.ts';
-	import Lightbox from './Lightbox.svelte';
 
 	/**
 	 * Siegertreppchen: Platz 2 – 1 – 3 nebeneinander, der Sieger in der Mitte
@@ -15,19 +14,14 @@
 	const order = $derived(
 		top.length === 1 ? [top[0]] : top.length === 2 ? [top[1], top[0]] : [top[1], top[0], top[2]]
 	);
-	let index = $state<number | null>(null);
 </script>
 
 <div class="podium" style="--n: {order.length}">
 	{#each order as photo (photo.id)}
 		<div class="place place-{Math.min(photo.place, 3)}">
-			<button
-				class="photo"
-				onclick={() => (index = top.indexOf(photo))}
-				aria-label="Gross anzeigen"
-			>
+			<a class="photo" href="/foto/{photo.id}" aria-label="Foto ansehen">
 				<img src={photoSrc(photo.id, 1200)} alt="" loading="lazy" />
-			</button>
+			</a>
 			<div class="caption">
 				<a class="who" href="/person/{photo.userId}"><strong>{photo.userName}</strong></a>
 				<span class="muted">
@@ -40,7 +34,6 @@
 		</div>
 	{/each}
 </div>
-<Lightbox photos={top} bind:index />
 
 <style>
 	.podium {

@@ -361,6 +361,31 @@
 		padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 	}
 
+	/* Hell: heller Grund wie im Rest der App */
+	:global([data-theme='light']) .focus {
+		background: var(--bg);
+		color: var(--text);
+	}
+
+	:global([data-theme='light']) .counter,
+	:global([data-theme='light']) .exif-line {
+		color: var(--muted);
+	}
+
+	:global([data-theme='light']) .exif-line {
+		color: var(--text);
+	}
+
+	:global([data-theme='light']) .sep {
+		color: color-mix(in srgb, var(--muted) 50%, transparent);
+	}
+
+	:global([data-theme='light']) .more-btn {
+		background: rgb(0 0 0 / 0.05);
+		border-color: rgb(0 0 0 / 0.12);
+		color: var(--text);
+	}
+
 	.focus-bar {
 		flex: none;
 		display: flex;

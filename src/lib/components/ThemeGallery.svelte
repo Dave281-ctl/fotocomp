@@ -3,13 +3,9 @@
 	import { photoSrc } from '../media.ts';
 	import { formatDay } from '../schedule.ts';
 	import type { FeedPhoto } from '../types.ts';
-	import Lightbox from './Lightbox.svelte';
 
-	/** Alle Fotos eines Themas nach Tag, als dichtes Raster. Ein Vollbild über alle. */
+	/** Alle Fotos eines Themas nach Tag, als dichtes Raster. Antippen öffnet die Fokus-Ansicht. */
 	let { days }: { days: { day: string; photos: FeedPhoto[] }[] } = $props();
-
-	const all = $derived(days.flatMap((d) => d.photos));
-	let index = $state<number | null>(null);
 </script>
 
 <div class="stack" style="--gap: 28px">
@@ -18,11 +14,7 @@
 			<h3 class="muted">{formatDay(group.day)}</h3>
 			<div class="grid">
 				{#each group.photos as photo (photo.id)}
-					<button
-						class="tile"
-						onclick={() => (index = all.indexOf(photo))}
-						aria-label="Gross anzeigen"
-					>
+					<a class="tile" href="/foto/{photo.id}" aria-label="Foto ansehen">
 						<img src={photoSrc(photo.id, 480)} alt="" loading="lazy" />
 						{#if photo.badge}
 							<span class="award" title={photo.badge === 'week' ? 'Wochenfoto' : 'Tagessieg'}>
@@ -33,13 +25,12 @@
 							<span>{photo.userName}</span>
 							{#if photo.average !== null}<span>★ {photo.average.toFixed(1)}</span>{/if}
 						</span>
-					</button>
+					</a>
 				{/each}
 			</div>
 		</section>
 	{/each}
 </div>
-<Lightbox photos={all} bind:index />
 
 <style>
 	h3 {
