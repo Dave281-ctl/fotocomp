@@ -2,17 +2,13 @@
 	import { page } from '$app/state';
 	import { House, Images, Layers, MessageCircle, Shield, UserRound } from '@lucide/svelte';
 	import { live } from '#lib/chat-live.svelte.ts';
-	import ThemeToggle from './ThemeToggle.svelte';
-	import logoMark from './logo-mark.svg?raw';
 
 	let {
 		user,
-		theme,
 		themesHref = '/themen',
 		openTasks = 0
 	}: {
 		user: { name: string; role: string };
-		theme: 'dark' | 'light';
 		themesHref?: string;
 		/** Offene Aufgaben (Zähler bei «Heute») */
 		openTasks?: number;
@@ -26,8 +22,8 @@
 	const items = $derived([
 		{ href: '/', label: 'Heute', icon: House },
 		{ href: themesHref, label: 'Themen', icon: Layers, section: '/themen' },
-		{ href: '/chat', label: 'Chat', icon: MessageCircle },
 		{ href: '/galerie', label: 'Galerie', icon: Images },
+		{ href: '/chat', label: 'Chat', icon: MessageCircle },
 		{ href: '/profil', label: 'Profil', icon: UserRound },
 		// Auf dem Handy liegt «Admin» im Profil (sonst wird die Leiste zu eng)
 		...(user.role === 'admin'
@@ -42,20 +38,17 @@
 </script>
 
 <header>
-	<a class="brand" href="/">
-		<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes, statisches Logo -->
-		<span class="mark" aria-hidden="true">{@html logoMark}</span>
-		Fotocomp
-	</a>
+	<a class="brand" href="/" aria-label="Fotocomp, zu Heute">fotocomp<span class="dot">.</span></a>
 	<nav>
 		{#each items as item (item.href)}
 			<a
 				href={item.href}
 				class:active={activeItem(item)}
+				aria-current={activeItem(item) ? 'page' : undefined}
 				class:desktop-only={'desktopOnly' in item}
 			>
 				<span class="icon">
-					<item.icon size={20} strokeWidth={1.6} />
+					<item.icon size={22} strokeWidth={activeItem(item) ? 2.2 : 1.8} />
 					{#if badge(item.href)}
 						<span
 							class="count"
@@ -69,7 +62,6 @@
 			</a>
 		{/each}
 	</nav>
-	<div class="theme"><ThemeToggle {theme} /></div>
 </header>
 
 <style>
@@ -87,27 +79,17 @@
 		-webkit-backdrop-filter: blur(16px);
 	}
 
+	/* Logo «fotocomp.» mit Punkt in der Akzentfarbe */
 	.brand {
-		font-weight: 600;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
-		font-size: 13px;
 		margin-right: auto;
-		display: flex;
-		align-items: center;
-		gap: 10px;
+		font-family: var(--font-logo);
+		font-size: 17px;
+		font-weight: 700;
+		letter-spacing: -0.03em;
 	}
 
-	.mark {
-		display: grid;
-		width: 22px;
-		height: 22px;
-		color: var(--text);
-	}
-
-	.mark :global(svg) {
-		width: 100%;
-		height: 100%;
+	.dot {
+		color: var(--accent);
 	}
 
 	nav {
@@ -123,6 +105,7 @@
 		border-radius: 999px;
 		color: var(--muted);
 		font-size: 14px;
+		font-weight: 600;
 		transition: color 0.15s;
 	}
 
@@ -133,13 +116,13 @@
 
 	nav a.active {
 		background: var(--surface);
+		font-weight: 700;
 	}
 
 	nav a :global(svg) {
 		display: none;
 	}
 
-	/* Mobil: Navigation als Leiste unten */
 	.icon {
 		position: relative;
 		display: grid;
@@ -147,20 +130,33 @@
 
 	.count {
 		position: absolute;
-		top: -6px;
+		top: -4px;
 		right: -10px;
-		min-width: 17px;
-		height: 17px;
+		min-width: 16px;
+		height: 16px;
 		padding: 0 4px;
 		border-radius: 999px;
 		background: var(--accent);
 		color: var(--accent-text);
 		font-size: 10px;
-		font-weight: 700;
-		line-height: 17px;
+		font-weight: 800;
+		line-height: 16px;
 		text-align: center;
 	}
 
+	/* Desktop: Zähler neben dem Text statt über dem Symbol */
+	@media (min-width: 721px) {
+		.count {
+			position: static;
+			margin-left: 2px;
+		}
+
+		.icon {
+			order: 1;
+		}
+	}
+
+	/* Handy: Navigation als schwebende Insel unten */
 	@media (max-width: 720px) {
 		.desktop-only {
 			display: none !important;
@@ -168,7 +164,6 @@
 
 		/* backdrop-filter würde die fixierte Leiste unten an den Header binden */
 		header {
-			justify-content: space-between;
 			position: static;
 			backdrop-filter: none;
 			-webkit-backdrop-filter: none;
@@ -178,27 +173,38 @@
 		nav {
 			position: fixed;
 			z-index: 30;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			justify-content: space-around;
+			left: 16px;
+			right: 16px;
+			bottom: var(--tabbar-bottom);
+			max-width: 480px;
+			margin: 0 auto;
+			height: 64px;
+			padding: 0 6px;
+			display: grid;
+			grid-template-columns: repeat(5, minmax(0, 1fr));
+			align-items: center;
 			gap: 0;
-			padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-			background: color-mix(in srgb, var(--bg) 90%, transparent);
-			backdrop-filter: blur(16px);
-			-webkit-backdrop-filter: blur(16px);
-			border-top: 1px solid var(--line);
+			border-radius: 999px;
+			background: var(--tabbar-bg);
+			backdrop-filter: blur(20px);
+			-webkit-backdrop-filter: blur(20px);
+			border: 1px solid var(--tabbar-edge);
+			box-shadow: var(--tabbar-shadow);
 		}
 
 		nav a {
 			flex-direction: column;
+			justify-content: center;
 			gap: 2px;
-			padding: 6px 10px;
+			height: 52px;
+			padding: 0;
 			font-size: 11px;
+			font-weight: 600;
 		}
 
 		nav a.active {
-			background: none;
+			background: var(--tabbar-active);
+			font-weight: 700;
 		}
 
 		nav a :global(svg) {

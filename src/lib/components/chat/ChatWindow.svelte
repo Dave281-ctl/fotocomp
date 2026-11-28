@@ -531,7 +531,7 @@
 
 	@media (max-width: 720px) {
 		.chat {
-			bottom: max(calc(var(--nav-h) + env(safe-area-inset-bottom)), var(--kb, 0px));
+			bottom: max(var(--tabbar-space), var(--kb, 0px));
 		}
 	}
 

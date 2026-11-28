@@ -129,7 +129,7 @@
 		</a>
 		<div class="item static">
 			<SunMoon size={18} />
-			<span>Darstellung</span>
+			<span>Erscheinungsbild</span>
 			<ThemeToggle theme={data.theme} />
 		</div>
 		<form method="POST" action="/abmelden">

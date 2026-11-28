@@ -110,7 +110,7 @@
 
 	@media (max-width: 720px) {
 		.savebar {
-			bottom: calc(var(--nav-h) + 12px);
+			bottom: calc(var(--tabbar-space) + 4px);
 		}
 	}
 

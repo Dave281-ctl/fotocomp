@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '@fontsource-variable/manrope';
 	import '@fontsource-variable/inter';
 	import '../app.css';
 	import Nav from '#lib/components/Nav.svelte';
@@ -28,12 +29,7 @@
 {/if}
 
 {#if data.user}
-	<Nav
-		user={data.user}
-		theme={data.theme}
-		themesHref={data.themesHref}
-		openTasks={data.openTasks}
-	/>
+	<Nav user={data.user} themesHref={data.themesHref} openTasks={data.openTasks} />
 	<PullToRefresh />
 	{#if data.pushKey}<PushPrompt pushKey={data.pushKey} />{/if}
 {/if}
@@ -81,7 +77,7 @@
 
 	@media (max-width: 720px) {
 		main.with-nav {
-			padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+			padding-bottom: var(--tabbar-space);
 		}
 	}
 </style>

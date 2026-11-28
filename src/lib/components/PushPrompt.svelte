@@ -100,7 +100,7 @@
 		z-index: 60;
 		left: 12px;
 		right: 12px;
-		bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+		bottom: calc(var(--tabbar-space) + 4px);
 		max-width: 480px;
 		margin: 0 auto;
 		display: grid;
