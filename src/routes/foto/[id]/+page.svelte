@@ -397,10 +397,10 @@
 		touch-action: pan-y;
 	}
 
+	/* Das Bild füllt die ganze Fläche zwischen Kopf- und Fusszeile, ohne Beschnitt */
 	.stage-img {
-		display: grid;
-		place-items: center;
-		min-height: 0;
+		position: absolute;
+		inset: 0;
 		padding: 0;
 		border: 0;
 		background: none;
@@ -408,10 +408,8 @@
 	}
 
 	.stage-img img {
-		max-width: 100%;
-		max-height: 100%;
-		width: auto;
-		height: auto;
+		width: 100%;
+		height: 100%;
 		object-fit: contain;
 	}
 
