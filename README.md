@@ -74,6 +74,8 @@ Die installierte Version steht dezent unten auf jeder Seite.
 
 **Versionsnummern:** Eine Erhöhung der mittleren Zahl (z.B. `0.3.x` → `0.4.0`) kündigt an, dass ein manueller Schritt nötig sein kann, etwa eine Änderung an `compose.yaml` oder `.env`. Was zu tun ist, steht dann in der Release-Notiz. Wer «nur innerhalb v0.3.x» wählt, bekommt solche Versionen nie unbemerkt.
 
+**Beta-Versionen** (z.B. `v0.9.0-beta.1`) erscheinen auf GitHub als «Pre-release» und gehen nur an eine separate Beta-Instanz zum Testen (siehe [ENTWICKLUNG.md](ENTWICKLUNG.md)). Die Plattform bekommt nur stabile Versionen.
+
 **Lange nicht aktualisiert?** Kein Problem: Alle Datenbank-Änderungen bauen aufeinander auf und werden beim Start der Reihe nach ausgeführt. Ein Sprung von `v0.3.5` direkt auf die neueste Version funktioniert. Lies vorher die Release-Notizen der übersprungenen Versionen mit «⚠ Manueller Schritt».
 
 > Nach dem allerersten Release muss das Paket einmalig öffentlich gemacht werden, damit das NAS es ohne Anmeldung laden kann: GitHub → Profil → Packages → `fotocomp` → Package settings → Change visibility → Public.
@@ -141,6 +143,10 @@ photos/
 ```
 
 ## Entwicklung
+
+> **Mitentwickeln?** Die ausführliche Anleitung – Branches, Pull Requests, Beta-Versionen,
+> Beta-Instanz auf dem NAS und Hilfe bei git-Problemen – steht in **[ENTWICKLUNG.md](ENTWICKLUNG.md)**.
+> Claude Code liest die Regeln für dieses Repository aus [CLAUDE.md](CLAUDE.md).
 
 Voraussetzungen: Node.js 22+, Perl (für ExifTool, unter Linux meist vorhanden) und Podman oder Docker. Für RAW-Dateien ohne eingebettete Vorschau optional LibRaw (`dcraw_emu`).
 
