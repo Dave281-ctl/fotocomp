@@ -1,7 +1,18 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { BellOff, Ellipsis, Layers, LifeBuoy, Pin, PinOff, Plus, Trash2 } from '@lucide/svelte';
+	import {
+		BellOff,
+		Ellipsis,
+		Layers,
+		LifeBuoy,
+		Pin,
+		PinOff,
+		Plus,
+		Search,
+		Trash2
+	} from '@lucide/svelte';
+	import { photoSrc } from '#lib/media.ts';
 	import { swipe } from '#lib/swipe.ts';
 	import type { ChatSummary } from '#lib/types.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
@@ -18,6 +29,21 @@
 	let menuRow = $state<number | null>(null);
 	let confirmDelete = $state<ChatSummary | null>(null);
 	let notice = $state('');
+	let query = $state('');
+
+	/** Suche in Namen und letzter Nachricht, ohne Gross-/Kleinschreibung. */
+	const shown = $derived.by(() => {
+		const q = query.trim().toLowerCase();
+		return q
+			? data.chats.filter((c) =>
+					`${c.title} ${c.last?.author ?? ''} ${c.last?.excerpt ?? ''}`.toLowerCase().includes(q)
+				)
+			: data.chats;
+	});
+	const favorites = $derived(data.chats.filter((c) => c.favorite));
+	const groups = $derived(shown.filter((c) => c.kind === 'theme'));
+	const direct = $derived(shown.filter((c) => c.kind === 'direct'));
+	const help = $derived(shown.filter((c) => c.kind === 'help'));
 
 	const offset = (id: number) =>
 		drag?.id === id
@@ -54,106 +80,153 @@
 
 <svelte:head><title>Chat · Fotocomp</title></svelte:head>
 
-<div class="page narrow stack" style="--gap: 24px">
-	<div class="row head">
-		<div class="stack" style="--gap: 6px">
-			<p class="eyebrow">Chat</p>
-			<h1>Nachrichten</h1>
+{#snippet chatRow(c: ChatSummary)}
+	<li class:menu-open={menuRow === c.id}>
+		<!-- Knöpfe hinter der Zeile (sichtbar nach dem Wischen) -->
+		<div class="actions" aria-hidden={openRow !== c.id}>
+			<button class="fav" onclick={() => favorite(c)}>
+				{#if c.favorite}<PinOff size={18} /> Lösen{:else}<Pin size={18} /> Anheften{/if}
+			</button>
+			{#if c.kind === 'direct'}
+				<button class="del" onclick={() => ((confirmDelete = c), (openRow = null))}>
+					<Trash2 size={18} /> Löschen
+				</button>
+			{/if}
 		</div>
-		<a class="btn" href="/chat/neu"><Plus size={16} /> Neuer Chat</a>
+		<a
+			class="chat"
+			href="/chat/{c.id}"
+			class:unread={c.unread > 0}
+			style:transform={offset(c.id) ? `translateX(${offset(c.id)}px)` : undefined}
+			style:transition={drag?.id === c.id ? 'none' : undefined}
+			onclick={(e) => {
+				// Offene Zeile: erst schliessen statt öffnen
+				if (openRow !== null) {
+					e.preventDefault();
+					openRow = null;
+				}
+			}}
+			use:swipe={{
+				onleft: () => (openRow = c.id),
+				onright: openRow === c.id ? () => (openRow = null) : undefined,
+				onmove: (dx) => (drag = dx ? { id: c.id, dx } : null),
+				max: ACTIONS_W,
+				threshold: 50
+			}}
+		>
+			{#if c.kind === 'direct' && c.person}
+				<Avatar name={c.person.name} id={c.person.id} size={44} />
+			{:else if c.kind === 'theme' && c.themeId && data.covers[c.themeId]}
+				<img class="group-pic" src={photoSrc(data.covers[c.themeId], 480)} alt="" />
+			{:else}
+				<span class="icon" class:help={c.kind === 'help'}>
+					{#if c.kind === 'help'}<LifeBuoy size={20} />{:else}<Layers size={20} />{/if}
+				</span>
+			{/if}
+			<span class="text">
+				<span class="top">
+					{#if c.favorite}<Pin size={13} class="pinned" />{/if}
+					<strong>{c.title}</strong>
+					{#if c.last}<span class="when">{formatWhen(c.last.at, new Date())}</span>{/if}
+				</span>
+				<span class="bottom">
+					<span class="excerpt">
+						{#if c.last}
+							{c.last.own ? 'Du' : c.kind === 'direct' ? '' : c.last.author}{c.last.own ||
+							c.kind !== 'direct'
+								? ': '
+								: ''}{c.last.excerpt}
+						{:else}
+							<span class="muted">Noch keine Nachrichten</span>
+						{/if}
+					</span>
+					{#if c.muted}<BellOff size={14} class="muted" />{/if}
+					{#if c.mentioned}<span class="at" title="Du wurdest erwähnt">@</span>{/if}
+					{#if c.unread}<span class="count">{c.unread}</span>{/if}
+				</span>
+			</span>
+		</a>
+		<!-- Computer: ⋯-Menü -->
+		<button
+			class="more"
+			onclick={() => (menuRow = menuRow === c.id ? null : c.id)}
+			aria-label="Optionen für {c.title}"
+		>
+			<Ellipsis size={18} />
+		</button>
+		{#if menuRow === c.id}
+			<div class="popover">
+				<button onclick={() => favorite(c)}>
+					{#if c.favorite}<PinOff size={16} /> Lösen{:else}<Pin size={16} /> Oben anheften{/if}
+				</button>
+				{#if c.kind === 'direct'}
+					<button class="danger" onclick={() => ((confirmDelete = c), (menuRow = null))}>
+						<Trash2 size={16} /> Chat löschen
+					</button>
+				{/if}
+			</div>
+		{/if}
+	</li>
+{/snippet}
+
+{#snippet section(title: string, list: ChatSummary[])}
+	{#if list.length}
+		<h2 class="section">{title}</h2>
+		<ul class="list">
+			{#each list as c (c.id)}{@render chatRow(c)}{/each}
+		</ul>
+	{/if}
+{/snippet}
+
+<div class="page narrow chats">
+	<div class="head">
+		<h1>Chat</h1>
+		<a class="new" href="/chat/neu" aria-label="Neuer Chat" title="Neuer Chat">
+			<Plus size={22} />
+		</a>
 	</div>
+
+	{#if data.chats.length}
+		<label class="search">
+			<Search size={18} />
+			<input type="search" placeholder="Suchen" bind:value={query} aria-label="Chats durchsuchen" />
+		</label>
+	{/if}
+
+	<!-- Angeheftete Chats als grosse Kreise -->
+	{#if favorites.length && !query}
+		<div class="favs">
+			{#each favorites as c (c.id)}
+				<a class="fav-item" href="/chat/{c.id}">
+					<span class="fav-pic">
+						{#if c.kind === 'direct' && c.person}
+							<Avatar name={c.person.name} id={c.person.id} size={60} />
+						{:else if c.kind === 'theme' && c.themeId && data.covers[c.themeId]}
+							<img class="group-pic big" src={photoSrc(data.covers[c.themeId], 480)} alt="" />
+						{:else}
+							<span class="icon big" class:help={c.kind === 'help'}>
+								{#if c.kind === 'help'}<LifeBuoy size={24} />{:else}<Layers size={24} />{/if}
+							</span>
+						{/if}
+						{#if c.unread}<span class="fav-dot" title="{c.unread} ungelesen"></span>{/if}
+					</span>
+					<span class="fav-name">
+						{c.kind === 'direct' && c.person ? c.person.name.split(' ')[0] : c.title}
+					</span>
+				</a>
+			{/each}
+		</div>
+	{/if}
 
 	{#if notice}<p class="notice">{notice}</p>{/if}
 
 	{#if data.chats.length}
-		<ul class="list">
-			{#each data.chats as c (c.id)}
-				<li class:menu-open={menuRow === c.id}>
-					<!-- Knöpfe hinter der Zeile (sichtbar nach dem Wischen) -->
-					<div class="actions" aria-hidden={openRow !== c.id}>
-						<button class="fav" onclick={() => favorite(c)}>
-							{#if c.favorite}<PinOff size={18} /> Lösen{:else}<Pin size={18} /> Anheften{/if}
-						</button>
-						{#if c.kind === 'direct'}
-							<button class="del" onclick={() => ((confirmDelete = c), (openRow = null))}>
-								<Trash2 size={18} /> Löschen
-							</button>
-						{/if}
-					</div>
-					<a
-						class="chat"
-						href="/chat/{c.id}"
-						class:unread={c.unread > 0}
-						style:transform={offset(c.id) ? `translateX(${offset(c.id)}px)` : undefined}
-						style:transition={drag?.id === c.id ? 'none' : undefined}
-						onclick={(e) => {
-							// Offene Zeile: erst schliessen statt öffnen
-							if (openRow !== null) {
-								e.preventDefault();
-								openRow = null;
-							}
-						}}
-						use:swipe={{
-							onleft: () => (openRow = c.id),
-							onright: openRow === c.id ? () => (openRow = null) : undefined,
-							onmove: (dx) => (drag = dx ? { id: c.id, dx } : null),
-							max: ACTIONS_W,
-							threshold: 50
-						}}
-					>
-						{#if c.kind === 'direct' && c.person}
-							<Avatar name={c.person.name} id={c.person.id} size={44} />
-						{:else}
-							<span class="icon" class:help={c.kind === 'help'}>
-								{#if c.kind === 'help'}<LifeBuoy size={20} />{:else}<Layers size={20} />{/if}
-							</span>
-						{/if}
-						<span class="text">
-							<span class="top">
-								{#if c.favorite}<Pin size={13} class="pinned" />{/if}
-								<strong>{c.title}</strong>
-								{#if c.last}<span class="when">{formatWhen(c.last.at, new Date())}</span>{/if}
-							</span>
-							<span class="bottom">
-								<span class="excerpt">
-									{#if c.last}
-										{c.last.own ? 'Du' : c.kind === 'direct' ? '' : c.last.author}{c.last.own ||
-										c.kind !== 'direct'
-											? ': '
-											: ''}{c.last.excerpt}
-									{:else}
-										<span class="muted">Noch keine Nachrichten</span>
-									{/if}
-								</span>
-								{#if c.muted}<BellOff size={14} class="muted" />{/if}
-								{#if c.mentioned}<span class="at" title="Du wurdest erwähnt">@</span>{/if}
-								{#if c.unread}<span class="count">{c.unread}</span>{/if}
-							</span>
-						</span>
-					</a>
-					<!-- Computer: ⋯-Menü -->
-					<button
-						class="more"
-						onclick={() => (menuRow = menuRow === c.id ? null : c.id)}
-						aria-label="Optionen für {c.title}"
-					>
-						<Ellipsis size={18} />
-					</button>
-					{#if menuRow === c.id}
-						<div class="popover">
-							<button onclick={() => favorite(c)}>
-								{#if c.favorite}<PinOff size={16} /> Lösen{:else}<Pin size={16} /> Oben anheften{/if}
-							</button>
-							{#if c.kind === 'direct'}
-								<button class="danger" onclick={() => ((confirmDelete = c), (menuRow = null))}>
-									<Trash2 size={16} /> Chat löschen
-								</button>
-							{/if}
-						</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
+		{@render section('Themen-Gruppen', groups)}
+		{@render section('Direkt', direct)}
+		{@render section('Hilfe', help)}
+		{#if query && !groups.length && !direct.length && !help.length}
+			<p class="muted">Nichts gefunden für «{query}».</p>
+		{/if}
 		<p class="muted small tip">
 			Tipp: Auf dem Handy eine Zeile nach links wischen, um sie anzuheften oder zu löschen. Bis zu 3
 			Chats bleiben oben.
@@ -183,9 +256,117 @@
 {/if}
 
 <style>
+	.chats {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		min-width: 0;
+	}
+
 	.head {
+		display: flex;
 		justify-content: space-between;
-		align-items: flex-end;
+		align-items: center;
+	}
+
+	.head h1 {
+		padding: 0 4px;
+		font-size: 32px;
+		line-height: 1.05;
+		letter-spacing: -0.03em;
+	}
+
+	.new {
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: var(--surface);
+	}
+
+	.search {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		height: 44px;
+		padding: 0 12px;
+		border-radius: var(--radius-sm);
+		background: var(--surface);
+		color: var(--muted);
+	}
+
+	.search input {
+		flex: 1;
+		min-width: 0;
+		padding: 0;
+		border: 0;
+		background: none;
+		outline: none;
+		color: var(--text);
+	}
+
+	.section {
+		padding: 12px 4px 0;
+		font-size: 20px;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+	}
+
+	/* Angeheftete Chats */
+	.favs {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 8px;
+		padding-top: 4px;
+	}
+
+	.fav-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+	}
+
+	.fav-pic {
+		position: relative;
+		display: grid;
+	}
+
+	.fav-dot {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background: var(--accent);
+		border: 3px solid var(--bg);
+	}
+
+	.fav-name {
+		max-width: 100%;
+		font-size: 13px;
+		font-weight: 600;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.group-pic {
+		width: 44px;
+		height: 44px;
+		border-radius: 14px;
+		object-fit: cover;
+	}
+
+	.group-pic.big,
+	.icon.big {
+		width: 60px;
+		height: 60px;
+		border-radius: 18px;
 	}
 
 	.list {
