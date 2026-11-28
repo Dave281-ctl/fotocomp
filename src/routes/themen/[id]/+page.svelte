@@ -215,8 +215,8 @@
 		inset: 0;
 		background: linear-gradient(
 			180deg,
-			rgb(0 0 0 / 0.5) 0%,
-			rgb(0 0 0 / 0) 25%,
+			rgb(0 0 0 / 0.3) 0,
+			rgb(0 0 0 / 0) calc(var(--safe-top) + 72px),
 			rgb(0 0 0 / 0.1) 50%,
 			var(--bg) 100%
 		);
@@ -233,6 +233,7 @@
 		height: 56px;
 		padding: 0 8px;
 		color: #fff;
+		text-shadow: 0 1px 8px rgb(0 0 0 / 0.45);
 	}
 
 	.nocover .bar {

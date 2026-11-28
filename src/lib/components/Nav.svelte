@@ -194,6 +194,7 @@
 			right: 0;
 			background: none;
 			color: #fff;
+			text-shadow: 0 1px 8px rgb(0 0 0 / 0.45);
 		}
 
 		nav {

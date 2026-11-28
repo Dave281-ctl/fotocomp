@@ -263,8 +263,8 @@
 		inset: 0;
 		background: linear-gradient(
 			180deg,
-			rgb(0 0 0 / 0.55) 0%,
-			rgb(0 0 0 / 0) 22%,
+			rgb(0 0 0 / 0.3) 0,
+			rgb(0 0 0 / 0) calc(var(--safe-top) + 72px),
 			rgb(0 0 0 / 0) 55%,
 			var(--bg) 100%
 		);
@@ -278,7 +278,8 @@
 		display: flex;
 		align-items: center;
 		font-size: 13px;
-		color: rgb(255 255 255 / 0.75);
+		color: rgb(255 255 255 / 0.85);
+		text-shadow: 0 1px 8px rgb(0 0 0 / 0.45);
 	}
 
 	.caption {
