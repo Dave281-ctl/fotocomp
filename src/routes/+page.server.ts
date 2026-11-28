@@ -1,12 +1,20 @@
 import { redirect } from '@sveltejs/kit';
-import { formatDay, formatWhen, gameDay, isThemeOpen, themePhase } from '#lib/schedule.ts';
+import {
+	formatDay,
+	formatShortDay,
+	formatWhen,
+	gameDay,
+	isThemeOpen,
+	themePhase
+} from '#lib/schedule.ts';
 import { chatExcerpt } from '#lib/chat-rules.ts';
 import { recentMentions } from '#lib/server/chat.ts';
 import { seenEnough } from '#lib/server/news-views.ts';
 import { NEWS_DAYS, themeNews, themeTasks } from '#lib/server/theme-status.ts';
 import type { NewsItem } from '#lib/types.ts';
 import { now } from '#lib/server/time.ts';
-import { getMemberships } from '#lib/server/themes.ts';
+import { getMemberships, getPhase } from '#lib/server/themes.ts';
+import { latestWin, uploaders, weekStats } from '#lib/server/today.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -24,7 +32,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			const tasks = await themeTasks(theme, user, t);
 			const news = await themeNews(theme, user, t, user.newsSeenAt);
 			const open = tasks.filter((task) => !task.done);
+			// «Wer hat schon»: nur solange hochgeladen wird
+			const current = await getPhase(theme, t);
+			const who =
+				current.kind === 'upload' ? await uploaders(theme.id, current.day, user.id) : null;
 			return {
+				who,
 				theme: { id: theme.id, title: theme.title },
 				upcoming: phase.kind === 'upcoming' ? formatDay(theme.startDate) : null,
 				tasks,
@@ -76,8 +89,35 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		g.open ? 0 : g.news.length ? 1 : g.tasks.length ? 2 : 3;
 	groups.sort((a, b) => rank(a) - rank(b) || (rank(a) === 0 ? a.due - b.due : b.latest - a.latest));
 
+	// Zusammenfassung oben: was ist zu tun und bis wann
+	const openTasks = groups.flatMap((g) => g.tasks.filter((task) => !task.done));
+	const kinds = new Set(openTasks.map((task) => task.kind));
+	const n = openTasks.length;
+	const headline = !n
+		? 'Alles erledigt'
+		: kinds.size === 1 && kinds.has('upload')
+			? `Noch ${n} ${n === 1 ? 'Foto' : 'Fotos'} hochladen`
+			: kinds.size === 1 && kinds.has('vote')
+				? `Noch ${n} ${n === 1 ? 'Thema' : 'Themen'} bewerten`
+				: `${n} ${n === 1 ? 'Aufgabe' : 'Aufgaben'} offen`;
+	const due = Math.min(...openTasks.map((task) => task.due?.getTime() ?? Infinity));
+	const left = Number.isFinite(due) ? Math.max(0, due - t.getTime()) : null;
+	const remaining =
+		left === null
+			? null
+			: `noch ${Math.floor(left / 3_600_000)}:${String(Math.floor(left / 60_000) % 60).padStart(2, '0')} Std.`;
+
 	return {
 		day: formatDay(gameDay(t)),
+		shortDay: formatShortDay(gameDay(t)),
+		hero: await latestWin(
+			memberships.map((m) => m.theme),
+			user.id,
+			t
+		),
+		week: await weekStats(user.id, t),
+		headline,
+		remaining,
 		groups,
 		chatNews: visibleChatNews,
 		openTotal: groups.reduce((n, g) => n + g.open, 0),

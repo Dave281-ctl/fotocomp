@@ -35,9 +35,12 @@
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 	const activeItem = (item: { href: string; section?: string }) =>
 		isActive(item.section ?? item.href);
+
+	/** Heute mit Titelbild: Kopfzeile liegt am Handy auf dem Bild */
+	const overlay = $derived(page.url.pathname === '/' && !!page.data.hero);
 </script>
 
-<header>
+<header class:overlay>
 	<a class="brand" href="/" aria-label="Fotocomp, zu Heute">fotocomp<span class="dot">.</span></a>
 	<nav>
 		{#each items as item (item.href)}
@@ -168,6 +171,14 @@
 			backdrop-filter: none;
 			-webkit-backdrop-filter: none;
 			background: var(--bg);
+		}
+
+		header.overlay {
+			position: absolute;
+			left: 0;
+			right: 0;
+			background: none;
+			color: #fff;
 		}
 
 		nav {
