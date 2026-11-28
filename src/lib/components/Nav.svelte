@@ -179,11 +179,6 @@
 			background: var(--bg);
 		}
 
-		/* Hell: Die Schrift der Statusleiste bleibt weiss, also dort ein dunkler Streifen */
-		:global([data-theme='light']) header:not(.overlay) {
-			background: linear-gradient(#000 0 var(--safe-top), var(--bg) var(--safe-top));
-		}
-
 		header.hidden {
 			display: none;
 		}
