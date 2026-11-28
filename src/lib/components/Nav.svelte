@@ -172,9 +172,16 @@
 		/* backdrop-filter würde die fixierte Leiste unten an den Header binden */
 		header {
 			position: static;
+			height: var(--header-h);
+			padding-top: var(--safe-top);
 			backdrop-filter: none;
 			-webkit-backdrop-filter: none;
 			background: var(--bg);
+		}
+
+		/* Hell: Die Schrift der Statusleiste bleibt weiss, also dort ein dunkler Streifen */
+		:global([data-theme='light']) header:not(.overlay) {
+			background: linear-gradient(#000 0 var(--safe-top), var(--bg) var(--safe-top));
 		}
 
 		header.hidden {

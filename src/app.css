@@ -53,6 +53,9 @@
 	--page: 1080px;
 	--gutter: clamp(16px, 4vw, 32px);
 	--nav-h: 64px;
+	/* Als App vom Home-Bildschirm liegt die Statusleiste (Uhr, Akku) über dem Inhalt */
+	--safe-top: env(safe-area-inset-top, 0px);
+	--header-h: calc(var(--nav-h) + var(--safe-top));
 	/* Handy: Abstand der Insel-Leiste vom unteren Rand und Platz, den sie belegt */
 	--tabbar-bottom: max(12px, env(safe-area-inset-bottom));
 	--tabbar-space: calc(64px + var(--tabbar-bottom) + 12px);

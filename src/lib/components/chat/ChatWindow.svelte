@@ -520,7 +520,7 @@
 	.chat {
 		position: fixed;
 		z-index: 10;
-		top: var(--nav-h);
+		top: var(--header-h);
 		bottom: 0;
 		left: 0;
 		right: 0;

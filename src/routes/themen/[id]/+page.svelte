@@ -193,7 +193,7 @@
 	/* ---------------------------------------------------------- Titelbild */
 	.hero {
 		position: relative;
-		height: 380px;
+		height: calc(380px + var(--safe-top));
 		max-width: 600px;
 		margin: 0 auto;
 		overflow: hidden;
@@ -201,7 +201,7 @@
 	}
 
 	.hero.nocover {
-		height: 240px;
+		height: calc(240px + var(--safe-top));
 	}
 
 	.hero img {
@@ -224,7 +224,7 @@
 
 	.bar {
 		position: absolute;
-		top: 0;
+		top: var(--safe-top);
 		left: 0;
 		right: 0;
 		display: flex;

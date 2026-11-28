@@ -244,7 +244,7 @@
 	.hero {
 		position: relative;
 		display: block;
-		height: 440px;
+		height: calc(440px + var(--safe-top));
 		max-width: 600px;
 		margin: 0 auto;
 		overflow: hidden;
@@ -272,7 +272,7 @@
 
 	.date {
 		position: absolute;
-		top: 0;
+		top: var(--safe-top);
 		right: var(--gutter);
 		height: var(--nav-h);
 		display: flex;

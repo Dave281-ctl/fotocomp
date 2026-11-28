@@ -123,7 +123,7 @@
 
 	.section-head {
 		position: sticky;
-		top: var(--nav-h);
+		top: var(--header-h);
 		z-index: 5;
 		display: flex;
 		flex-wrap: wrap;

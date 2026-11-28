@@ -44,7 +44,7 @@
 
 <style>
 	.beta-band {
-		padding: 4px var(--gutter);
+		padding: calc(4px + var(--safe-top)) var(--gutter) 4px;
 		background: repeating-linear-gradient(
 			-45deg,
 			var(--accent),
@@ -56,6 +56,11 @@
 		font-size: 12px;
 		text-align: center;
 		letter-spacing: 0.02em;
+	}
+
+	/* Das Band belegt schon den Platz unter der Statusleiste */
+	.beta-band ~ :global(*) {
+		--safe-top: 0px;
 	}
 
 	.version {
